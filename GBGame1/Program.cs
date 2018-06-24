@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GBGame1
+namespace GB_Seasons
 {
     /// <summary>
     /// The main class.
@@ -13,7 +13,7 @@ namespace GBGame1
         [STAThread]
         static void Main()
         {
-            using (var game = new Game1())
+            using (var game = new SeasonsGame())
                 game.Run();
         }
     }
