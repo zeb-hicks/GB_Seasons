@@ -28,6 +28,7 @@ namespace GB_Seasons {
         Color ClearColor;
         public Texture2D Tileset;
         public Texture2D Sprites;
+        public Texture2D CharMap;
         public Texture2D ColorLut;
         public Texture2D GlowLut;
 
@@ -99,6 +100,7 @@ namespace GB_Seasons {
 
             Tileset = Content.Load<Texture2D>("tiles");
             Sprites = Content.Load<Texture2D>("sprites");
+            CharMap = Content.Load<Texture2D>("text");
             ColorLut = Content.Load<Texture2D>("color_lut");
             GlowLut = Content.Load<Texture2D>("glowmask");
 
@@ -110,6 +112,8 @@ namespace GB_Seasons {
             RTWindow = new RenderTarget2D(GraphicsDevice, Utils.GBW, Utils.GBH);
 
             Player.SetTexture(Sprites);
+
+            UIManager.Init(CharMap);
 
             SetSeason(Season.Spring);
 
@@ -179,6 +183,8 @@ namespace GB_Seasons {
 
             DrawLevel(gameTime);
 
+            DrawUI(gameTime);
+
             CommitToScreen(gameTime);
 
             var cameraMatrix = Matrix.Identity;
@@ -219,6 +225,20 @@ namespace GB_Seasons {
             level.Draw(spriteBatch, Tileset, 2, (int)CurrentSeason, 0, 0);
 
             spriteBatch.End();
+        }
+
+        private void DrawUI(GameTime gameTime) {
+            GraphicsDevice.SetRenderTarget(RTMain);
+
+            UIManager.DrawWindow(spriteBatch, new GBWindow {
+                Region = new Rectangle(8, 0, 144, 32),
+                Style = BorderStyle.Rounded | BorderStyle.Raised
+            });
+
+            UIManager.DrawString(spriteBatch, new GBString {
+                Region = new Rectangle(16, 8, 128, 16),
+                Text = (char)UIManager.SpecialChars.Coin + "123" + "\n" + (char)UIManager.SpecialChars.FlameSprite
+            }, gameTime);
         }
 
         private void DrawEntities(GameTime gameTime) {

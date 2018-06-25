@@ -42,6 +42,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Content Handlers\Map.cs" />
     <Compile Include="Entities\BeeParticle.cs" />
     <Compile Include="Entities\ButterflyParticle.cs" />
     <Compile Include="Entities\Collision.cs" />
@@ -50,7 +51,6 @@
     <Compile Include="GBGame.cs" />
     <Compile Include="Systems\Input.cs" />
     <Compile Include="Entities\LeafParticle.cs" />
-    <Compile Include="ContentHandlers\Map.cs" />
     <Compile Include="Entities\Particle.cs" />
     <Compile Include="Entities\Player.cs" />
     <Compile Include="Program.cs" />
@@ -58,7 +58,7 @@
     <Compile Include="Entities\SnowParticle.cs" />
     <Compile Include="Entities\SpriteEntity.cs" />
     <Compile Include="Systems\StoryState.cs" />
-    <Compile Include="Systems\StringPainter.cs" />
+    <Compile Include="Systems\UIManager.cs" />
     <Compile Include="Systems\Utilities.cs" />
   </ItemGroup>
   <ItemGroup>

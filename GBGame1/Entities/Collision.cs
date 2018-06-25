@@ -18,8 +18,27 @@ namespace GB_Seasons {
 
                 TempAxes.Clear();
                 TempAxes.AddRange(a.Axes);
-                TempAxes.AddRange(b.Axes);
+                foreach (SATAxis ba in b.Axes) {
+                    bool exists = false;
+                    foreach (SATAxis aa in a.Axes) {
+                        if (!exists && Vector2.Dot(aa.Vector, ba.Vector) == 0f) {
+                            exists = true;
+                        }
+                    }
+                    if (!exists) TempAxes.Add(ba);
+                }
 
+                foreach (SATAxis axis in TempAxes) {
+                    if (Utils.DEBUG) Utils.QueueDebugArrow(axis.Position, axis.Vector, Color.Red);
+
+                    if (Utils.DEBUG)
+                        Utils.QueueDebugPoly(new Vector2[] {
+                            a.Position + axis.Vector * 30f + axis.Vector.PerLeft()  * 15f,
+                            a.Position + axis.Vector * 30f + axis.Vector.PerRight() * 15f
+                        }, Color.White);
+                }
+
+                /*
                 foreach (SATAxis axis in b.Axes) {
                     if (Utils.DEBUG) Utils.QueueDebugArrow(axis.Position, axis.Vector, Color.Red);
 
@@ -44,6 +63,7 @@ namespace GB_Seasons {
                             a.Position + axis.Vector * 40f + axis.Vector.PerRight() * 20f
                         }, Color.White);
                 }
+                */
 
             }
 
