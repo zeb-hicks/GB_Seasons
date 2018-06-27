@@ -8,145 +8,130 @@ using System.Threading.Tasks;
 
 namespace GB_Seasons {
     public static class Collision {
-        private static List<SATAxis> TempAxes = new List<SATAxis>();
+        private static List<SATAxis> tempAxes = new List<SATAxis>();
+
+        /// <summary>
+        /// Separate Collider a from Collider b.
+        /// </summary>
+        /// <param name="a">Collider to separate.</param>
+        /// <param name="b">Collider to collide with.</param>
+        /// <returns>Returns a Vector describing the separation vector Collider a must move by to solve collision.</returns>
         public static Vector2 Separate(Collider a, Collider b) {
-            var sv = new Vector2();
-            float sm = float.MaxValue;
+            var separation_vector = new Vector2();
 
-            if (Utils.DEBUG) {
-                //Vector2 ac = a.Position + a.BBCenter;
-                //Vector2 bc = b.Position + b.BBCenter;
-                //float l = (bc - ac).Length();
-                //if (l < 50) Utils.QueueDebugArrow(ac, bc - ac, Color.Cyan, l);
-
-                //Utils.QueueDebugPoint(a.Position, 12f, Color.Orange, 1);
-
-                //Utils.QueueDebugPoint(b.Position, 12f, Color.Orange, 1);
-
-                //Utils.QueueDebugPoint(a.Position + a.BBCenter, 12f, Color.Orange, 1);
-
-                //Utils.QueueDebugPoint(b.Position + b.BBCenter, 12f, Color.Orange, 1);
-
-                //Utils.QueueDebugRect(new Rectangle((a.BBCenter - a.BBRadius).ToPoint(), (a.BBRadius * 2f).ToPoint()), a.Position, new Color(0, 255, 255));
-                //Utils.QueueDebugRect(new Rectangle((b.BBCenter - b.BBRadius).ToPoint(), (b.BBRadius * 2f).ToPoint()), b.Position, new Color(0, 255, 255));
-            }
-
+            // Coarse AABB check for early-out.
             if (BoxVsBox(a, b)) {
 
-                TempAxes.Clear();
-                foreach (SATAxis ba in b.Axes) {
-                    TempAxes.Add(new SATAxis {
-                        Position = ba.Position + a.Position,
-                        Vector = ba.Vector,
-                        Magnitude = ba.Magnitude,
-                        Gradient = ba.Gradient
+                float separation_magnitude = float.MaxValue;
+
+                // Clear the list of temp axes.
+                tempAxes.Clear();
+
+                // Compile a list of unique axes to separate.
+                foreach (SATAxis b_axis in b.Axes) {
+                    tempAxes.Add(new SATAxis {
+                        Vector = b_axis.Vector,
+                        Gradient = b_axis.Gradient
                     });
                 }
-                foreach (SATAxis aa in a.Axes) {
+                foreach (SATAxis a_axis in a.Axes) {
                     bool exists = false;
                     foreach (SATAxis ba in b.Axes) {
-                        if (!exists && Vector2.Dot(ba.Vector, aa.Vector) == 0f) {
+                        if (!exists && Vector2.Dot(ba.Vector, a_axis.Vector) == 0f) {
                             exists = true;
                         }
                     }
-                    SATAxis ax = new SATAxis {
-                        Position = aa.Position + b.Position,
-                        Vector = aa.Vector,
-                        Magnitude = aa.Magnitude,
-                        Gradient = aa.Gradient
-                    };
-                    if (!exists) TempAxes.Add(ax);
+                    if (!exists) {
+                        // Add unique axis to the temporary axis list.
+                        tempAxes.Add(new SATAxis {
+                            Vector = a_axis.Vector,
+                            Gradient = a_axis.Gradient
+                        });
+                    }
                 }
 
-                foreach (SATAxis axis in TempAxes) {
-                    ProjectionResult resulta = Project(a, axis);
-                    ProjectionResult resultb = Project(b, axis);
-                    //if (Utils.DEBUG) Utils.QueueDebugArrow(axis.Position, axis.Vector, Color.Red);
+                // Loop over all of the unique axes and check for collision.
+                foreach (SATAxis axis in tempAxes) {
 
-                    if (Utils.DEBUG) {
-                        // Draw projection basis
-                        Utils.QueueDebugPoly(new Vector2[] {
-                            axis.Vector.PerRight() * 30f + axis.Vector * 15f,
-                            axis.Vector.PerRight() * 30f + axis.Vector * -15f
-                        }, a.Position, Color.White);
+                    // Project each collider onto the axis.
+                    ProjectionResult result_a = Project(a, axis);
+                    ProjectionResult result_b = Project(b, axis);
 
-                        // Draw projection results
-                        Utils.QueueDebugPoly(new Vector2[] {
-                            axis.Vector.PerRight() * 29f + axis.Vector * resulta.Min,
-                            axis.Vector.PerRight() * 29f + axis.Vector * resulta.Max
-                        }, a.Position, new Color(255, 0, 0));
+                    float magnitude = 0f;
 
-                        // Draw projection results
-                        Utils.QueueDebugPoly(new Vector2[] {
-                            axis.Vector.PerRight() * 28f + axis.Vector * resultb.Min,
-                            axis.Vector.PerRight() * 28f + axis.Vector * resultb.Max
-                        }, a.Position, new Color(0, 255, 0));
-                    }
+                    if (result_a.Mid > result_b.Mid) {
+                        // Calculate overlap magnitude.
+                        magnitude = result_b.Max - result_a.Min;
 
-                    float mag = 0f;
-
-                    if (resulta.Mid > resultb.Mid) {
-                        mag = resultb.Max - resulta.Min;
-                        Utils.QueueDebugArrow(a.Position + axis.Vector.PerRight() * 28f + axis.Vector * resultb.Max, axis.Vector, new Color(0, 0, 255), mag);
-
-                        if (mag <= 0f) {
+                        // Exit early if there is no overlap.
+                        if (magnitude <= 0f) {
                             return new Vector2();
                         }
                     } else {
-                        mag = resultb.Min - resulta.Max;
-                        Utils.QueueDebugArrow(a.Position + axis.Vector.PerRight() * 28f + axis.Vector * resultb.Min, axis.Vector, new Color(0, 0, 255), mag);
+                        // Calculate overlap magnitude.
+                        magnitude = result_b.Min - result_a.Max;
 
-                        if (mag >= 0f) {
+                        // Exit early if there is no overlap.
+                        if (magnitude >= 0f) {
                             return new Vector2();
                         }
                     }
 
-                    if (Math.Abs(mag) < Math.Abs(sm)) {
-                        sv = axis.Vector * mag;
-                        sm = mag;
+                    // Update separation vector if this overlap is the smallest so far.
+                    if (Math.Abs(magnitude) < Math.Abs(separation_magnitude)) {
+                        separation_vector = axis.Vector * magnitude;
+                        separation_magnitude = magnitude;
                     }
                 }
 
             }
 
-            if (sm > 0.1f && sm < float.MaxValue) {
-                Utils.QueueDebugArrow(a.Position, sv, Color.Red, sm);
-            }
-
-            return sv;
+            return separation_vector;
         }
-
+        /// <summary>
+        /// Simple separation between vector and rectangle.
+        /// </summary>
+        /// <param name="v">Vector to separate.</param>
+        /// <param name="r">Rectangle to collide with.</param>
+        /// <returns>Returns a vector that v must move by to resolve collision.</returns>
         public static Vector2 Separate(Vector2 v, Rectangle r) {
-            var sv = new Vector2();
+            var separation_vector = new Vector2();
 
-            var le = v.X - r.X;
-            var re = r.X + r.Width - v.X;
-            var te = v.Y - r.Y;
-            var be = r.Y + r.Height - v.Y;
-            if (le > 0 && re > 0 && te > 0 && be > 0) {
-                if (le <= re && le <= te && le <= be) {
-                    sv.X = -le;
+            var left_edge = v.X - r.X;
+            var right_edge = r.X + r.Width - v.X;
+            var top_edge = v.Y - r.Y;
+            var bottom_edge = r.Y + r.Height - v.Y;
+
+            if (left_edge > 0 && right_edge > 0 && top_edge > 0 && bottom_edge > 0) {
+                if (left_edge <= right_edge && left_edge <= top_edge && left_edge <= bottom_edge) {
+                    separation_vector.X = -left_edge;
                 }
-                if (re <= le && re <= te && re <= be) {
-                    sv.X = re;
+                if (right_edge <= left_edge && right_edge <= top_edge && right_edge <= bottom_edge) {
+                    separation_vector.X = right_edge;
                 }
-                if (te <= le && te <= re && te <= be) {
-                    sv.Y = -te;
+                if (top_edge <= left_edge && top_edge <= right_edge && top_edge <= bottom_edge) {
+                    separation_vector.Y = -top_edge;
                 }
-                if (be <= le && be <= re && be <= te) {
-                    sv.Y = be;
+                if (bottom_edge <= left_edge && bottom_edge <= right_edge && bottom_edge <= top_edge) {
+                    separation_vector.Y = bottom_edge;
                 }
             }
-            return sv;
+            return separation_vector;
         }
 
+        /// <summary>
+        /// Projects a collider onto an axis.
+        /// </summary>
+        /// <param name="collider">The collider to project onto the axis.</param>
+        /// <param name="axis">The axis on which to project the collider.</param>
+        /// <returns>Returns a ProjectionResult containing an upper and lower magnitude of the projection along the axis.</returns>
         public static ProjectionResult Project(Collider collider, SATAxis axis) {
             float min = float.MaxValue, max = float.MinValue;
 
             Vector2 axisn = axis.Vector.Normalized();
 
             foreach (Vector2 p in collider.Points) {
-                float dp = Vector2.Dot(axisn, p + collider.Position - axis.Position);
+                float dp = Vector2.Dot(axisn, p + collider.Position);
                 min = Math.Min(dp, min);
                 max = Math.Max(dp, max);
             }
@@ -154,6 +139,12 @@ namespace GB_Seasons {
             return new ProjectionResult(min, max);
         }
 
+        /// <summary>
+        /// Collision check for the AABBs of two colliders.
+        /// </summary>
+        /// <param name="a">The first collider to check.</param>
+        /// <param name="b">The second collider to check.</param>
+        /// <returns>Returns true if the colliders AABBs overlap.</returns>
         public static bool BoxVsBox(Collider a, Collider b) {
             Vector2 p = (b.Position + b.BBCenter) - (a.Position + a.BBCenter);
             Vector2 s = b.BBRadius + a.BBRadius;
@@ -162,6 +153,12 @@ namespace GB_Seasons {
 
             return p.X < s.X && p.Y < s.Y;
         }
+        /// <summary>
+        /// Collision check for a pair of Rectangles.
+        /// </summary>
+        /// <param name="a">The first rectangle to check.</param>
+        /// <param name="b">The second rectangle to check.</param>
+        /// <returns>Returns true if the rectangles overlap.</returns>
         public static bool BoxVsBox(Rectangle a,  Rectangle b) {
             float x = Math.Abs(b.X - a.X);
             float y = Math.Abs(b.Y - a.Y);
@@ -170,6 +167,15 @@ namespace GB_Seasons {
 
             return x < hw && y < hh;
         }
+
+        /// <summary>
+        /// Collision detection for a ray vs a line segment.
+        /// </summary>
+        /// <param name="start">Starting point of the ray.</param>
+        /// <param name="dir">Ray direction vector.</param>
+        /// <param name="lineA">Line segment point A.</param>
+        /// <param name="lineB">Line segment point B.</param>
+        /// <returns>Returns true if the ray intersects the line segment.</returns>
         public static bool RayVsLine(Vector2 start, Vector2 dir, Vector2 lineA, Vector2 lineB) {
             float r, s, d;
             // Check for paralell (slope comparison)
@@ -186,11 +192,19 @@ namespace GB_Seasons {
             return false;
         }
 
+        /// <summary>
+        /// Collision detection for point vs polygon.
+        /// </summary>
+        /// <param name="v">Point to test.</param>
+        /// <param name="poly">Polygon to collide with.</param>
+        /// <returns>Returns true if the point lies within the polygon.</returns>
         public static bool PointInPoly(Vector2 v, Vector2[] poly) {
             float xmin = poly[0].X;
             float xmax = poly[0].X;
             float ymin = poly[0].Y;
             float ymax = poly[0].Y;
+
+            // Generate an AABB using the polygon.
             foreach (Vector2 pv in poly) {
                 xmin = Math.Min(xmin, pv.X);
                 xmax = Math.Max(xmin, pv.X);
@@ -205,6 +219,8 @@ namespace GB_Seasons {
 
             int i = 0;
             int j = poly.Length - 1;
+            // Line crossing test. If an odd number of line segments were crossed, the ray started inside the polgyon.
+            // Loop over each line segment and count the number of collisions vs the ray cast from point v.
             for (i = 0; i < poly.Length; i++) {
                 if (poly[i].Y < v.Y && poly[j].Y >= v.Y ||
                     poly[j].Y < v.Y && poly[i].Y >= v.Y) {
@@ -218,11 +234,20 @@ namespace GB_Seasons {
 
             return odd;
         }
+
+        /// <summary>
+        /// Collision detection for point vs polygon.
+        /// </summary>
+        /// <param name="v">Point to test.</param>
+        /// <param name="poly">Polygon to collide with.</param>
+        /// <returns>Returns true if the point lies within the polygon.</returns>
         public static bool PointInPoly(Vector2 v, Point[] poly) {
             float xmin = poly[0].X;
             float xmax = poly[0].X;
             float ymin = poly[0].Y;
             float ymax = poly[0].Y;
+
+            // Generate an AABB using the polygon.
             foreach (Point pv in poly) {
                 xmin = Math.Min(xmin, pv.X);
                 xmax = Math.Max(xmin, pv.X);
@@ -237,6 +262,8 @@ namespace GB_Seasons {
 
             int i = 0;
             int j = poly.Length - 1;
+            // Line crossing test. If an odd number of line segments were crossed, the ray started inside the polgyon.
+            // Loop over each line segment and count the number of collisions vs the ray cast from point v.
             for (i = 0; i < poly.Length; i++) {
                 if (poly[i].Y < v.Y && poly[j].Y >= v.Y ||
                     poly[j].Y < v.Y && poly[i].Y >= v.Y) {
@@ -251,11 +278,20 @@ namespace GB_Seasons {
             return odd;
         }
 
+        /// <summary>
+        /// Collision detection for point vs rectangle.
+        /// </summary>
+        /// <param name="v">The point to check.</param>
+        /// <param name="r">The rectangle to collide against.</param>
+        /// <returns>Returns true if the point lies within the rectangle.</returns>
         public static bool PointInRect(Vector2 v, Rectangle r) {
             return (v.X >= r.X && v.X < r.X + r.Width && v.Y >= r.Y && v.Y < r.Y + r.Height);
         }
     }
 
+    /// <summary>
+    /// A struct defining the result of an object projected along an axis.
+    /// </summary>
     public struct ProjectionResult {
         public float Min;
         public float Max;
@@ -267,24 +303,27 @@ namespace GB_Seasons {
         }
     }
 
+    /// <summary>
+    /// A struct defining a separation axis for the purposes of SAT.
+    /// </summary>
     public struct SATAxis {
-        public Vector2 Position;
         public Vector2 Vector;
         public float Gradient;
-        public float Magnitude;
 
-        public SATAxis(Vector2 position, Vector2 vector, float magnitude, float? gradient = null) {
-            Position = position;
+        /// <summary>
+        /// Create a SAT separation axis.
+        /// </summary>
+        /// <param name="vector">Vector that defines the axis.</param>
+        /// <param name="gradient">Gradient of the vector precomputed for duplicate detection.</param>
+        public SATAxis(Vector2 vector, float? gradient = null) {
             Vector = vector;
-            Magnitude = magnitude;
             Gradient = gradient ?? (vector.X == 0 ? 0 : Math.Abs(vector.Y / vector.X));
         }
 
         public static SATAxis FromLine(Vector2 a, Vector2 b) {
             var line = b - a;
-            var axis = line.PerLeft();
-            float mag = axis.Length();
-            return new SATAxis(a + (b - a) / 2f, axis / mag, mag);
+            var axis = line.PerLeft().Normalized();
+            return new SATAxis(axis);
         }
     }
 

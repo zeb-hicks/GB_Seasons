@@ -34,6 +34,17 @@ namespace GB_Seasons {
                     bool flipx = L.FlipX[tx + ty * L.Width];
                     bool flipy = L.FlipY[tx + ty * L.Width];
                     bool flipd = L.FlipD[tx + ty * L.Width];
+
+                    bool fx = flipx;
+                    bool fy = flipy;
+                    int rt = 0;
+
+                    if (flipd) {
+                        fx = flipx && flipy;
+                        fy = !flipx && !flipy;
+                        rt = (!flipx && flipy) ? 3 : 1;
+                    }
+
                     if (si >= 0) {
                         int sx = si % tw;
                         int sy = si / tw;
@@ -41,15 +52,14 @@ namespace GB_Seasons {
                         if (flipd) {
                             flipx = !flipx;
                         }
-                        SpriteEffects se = (flipx ? SpriteEffects.FlipHorizontally : SpriteEffects.None) | (flipy ? SpriteEffects.FlipVertically : SpriteEffects.None);
-                        //SpriteEffects se = SpriteEffects.None;
+                        SpriteEffects se = (fx ? SpriteEffects.FlipHorizontally : SpriteEffects.None) | (fy ? SpriteEffects.FlipVertically : SpriteEffects.None);
                         spriteBatch.Draw(
                             tileset,
                             new Rectangle(tx * 8 - x + 4, ty * 8 - y + 4, 8, 8),
                             //new Vector2(tx * 8 - x + 4, ty * 8 - y + 4),
                             new Rectangle(sx * 8, sy * 8, 8, 8),
                             Color.White,
-                            (float)(flipd ? Math.PI : 0f),
+                            (float)(rt * Math.PI / 2f),
                             new Vector2(4, 4),
                             se,
                             1f
