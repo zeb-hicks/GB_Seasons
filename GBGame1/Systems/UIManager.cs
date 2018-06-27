@@ -10,30 +10,37 @@ namespace GB_Seasons {
 
     public static class UIManager {
         public static Texture2D CharMap;
+        public static Effect TextEffect;
+        public static float ReadSpeed = 4f;
 
         public enum SpecialChars {
             FlameSprite = 0xE0,
-            FlameSpriteLight = 0xE8,
             Sword = 0xE1,
-            SwordLight = 0xE9,
             Shield = 0xE2,
-            ShieldLight = 0xEA,
             Coin = 0x110,
-            CoinLight = 0x118,
-            Cursor = 0xF0,
-            CursorLight = 0xF8
+            Cursor = 0xF0
         }
 
-        public static void Init(Texture2D charMap) {
+        public static void Init(Texture2D charMap, Effect textEffect) {
             CharMap = charMap;
+            TextEffect = textEffect;
         }
-        public static void DrawString(SpriteBatch spriteBatch, GBString str, GameTime gameTime) {
-            spriteBatch.Begin(blendState: BlendState.AlphaBlend, samplerState: SamplerState.PointWrap);
+        public static void DrawString(SpriteBatch spriteBatch, GBString str, GameTime gameTime, bool Invert = false) {
+            TextEffect.Parameters["Invert"]?.SetValue(Invert);
+            spriteBatch.Begin(blendState: BlendState.AlphaBlend, samplerState: SamplerState.PointWrap, effect: TextEffect);
 
             char[] chars = str.Text.ToCharArray();
 
+            int dx = 0;
+            int dy = 0;
+
             int sx = 0;
             int sy = 0;
+
+            int mx = str.Region.Width / 8;
+            int my = str.Region.Height / 8;
+
+            bool showCursor = false;
 
             for (int i = 0; i < chars.Length; i++) {
                 int ci = chars[i] - 32;
@@ -43,32 +50,43 @@ namespace GB_Seasons {
 
                 switch ((SpecialChars)chars[i]) {
                     case SpecialChars.Coin:
-                    case SpecialChars.CoinLight:
                         ci += (int)Math.Floor((gameTime.TotalGameTime.TotalSeconds * 6) % 6);
                         break;
                     case SpecialChars.Cursor:
-                    case SpecialChars.CursorLight:
                         oy = (int)Math.Floor((gameTime.TotalGameTime.TotalSeconds * 2) % 2);
                         break;
                     case SpecialChars.FlameSprite:
-                    case SpecialChars.FlameSpriteLight:
                         oy = (int)Math.Floor((gameTime.TotalGameTime.TotalSeconds) % 2);
                         ox = (int)Math.Floor((gameTime.TotalGameTime.TotalSeconds + 0.5) % 2);
                         break;
                 }
-                if (chars[i] == (int)SpecialChars.Coin) {
-                    
+
+                sx = ci & 0xf;
+                sy = ci >> 4;
+
+                if (chars[i] == '\n') {
+                    dx = 0;
+                    dy++;
+                } else {
+                    spriteBatch.Draw(CharMap, sourceRectangle: new Rectangle(sx * 8, sy * 8, 8, 8), destinationRectangle: new Rectangle(str.Region.X + dx * 8 + ox, str.Region.Y + dy * 8 + oy, 8, 8), color: Color.White);
+                    if (++dx + 1 > mx) {
+                        if (dy + 1 < my) {
+                            dx = 0;
+                            dy++;
+                        } else {
+                            showCursor = true;
+                            break;
+                        }
+                    }
                 }
+            }
 
-                int cx = ci & 0xf;
-                int cy = ci >> 4;
-
-                spriteBatch.Draw(CharMap, sourceRectangle: new Rectangle(cx * 8, cy * 8, 8, 8), destinationRectangle: new Rectangle(str.Region.X + sx + ox, str.Region.Y + sy + oy, 8, 8), color: Color.White);
-
-                if ((sx += 8) + 8 > str.Region.Width) {
-                    sx = 0;
-                    sy += 8;
-                }
+            if (showCursor) {
+                dx = mx - 1;
+                dy = my;
+                sx = 0;
+                sy = 13;
+                spriteBatch.Draw(CharMap, sourceRectangle: new Rectangle(sx * 8, sy * 8, 8, 8), destinationRectangle: new Rectangle(str.Region.X + dx * 8, str.Region.Y + dy * 8, 8, 8), color: Color.White);
             }
 
             spriteBatch.End();
@@ -107,6 +125,18 @@ namespace GB_Seasons {
     public struct GBString {
         public string Text;
         public Rectangle Region;
+        public ReadingMode ReadingMode;
+
+        public GBString(string text, Rectangle region, ReadingMode readingMode = ReadingMode.Immediate) {
+            Text = text;
+            Region = region;
+            ReadingMode = readingMode;
+        }
+    }
+
+    public enum ReadingMode {
+        Immediate,
+        Progressive
     }
 
     public struct GBWindow {

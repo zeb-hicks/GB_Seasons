@@ -151,3 +151,9 @@
 /processorParam:Quality=Best
 /build:atm/atm_wind.ogg
 
+#begin TextEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:TextEffect.fx
+

@@ -28,7 +28,6 @@ namespace GB_Seasons {
         Color ClearColor;
         public Texture2D Tileset;
         public Texture2D Sprites;
-        public Texture2D CharMap;
         public Texture2D ColorLut;
         public Texture2D GlowLut;
 
@@ -94,13 +93,16 @@ namespace GB_Seasons {
             level = new Map();
             level.Load("./Content/Maps/test.tmx");
 
+            //foreach (Collider c in level.Colliders) {
+            //    Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 0), 10000);
+            //}
+
             Player.Position = level.Meta["start_point"].Position - new Point(0, -8);
 
             CameraBounds = new Rectangle(level.MapBounds.X, level.MapBounds.Y, level.MapBounds.Width - Utils.GBW, level.MapBounds.Height - Utils.GBH);
 
             Tileset = Content.Load<Texture2D>("tiles");
             Sprites = Content.Load<Texture2D>("sprites");
-            CharMap = Content.Load<Texture2D>("text");
             ColorLut = Content.Load<Texture2D>("color_lut");
             GlowLut = Content.Load<Texture2D>("glowmask");
 
@@ -113,7 +115,10 @@ namespace GB_Seasons {
 
             Player.SetTexture(Sprites);
 
-            UIManager.Init(CharMap);
+            UIManager.Init(
+                Content.Load<Texture2D>("text"),
+                Content.Load<Effect>("texteffect")
+            );
 
             SetSeason(Season.Spring);
 
@@ -144,7 +149,41 @@ namespace GB_Seasons {
                 if (p.Despawn) WeatherParticles.Remove(p);
             }
 
-            if (Utils.DEBUG) Utils.QueueDebugRect(new Rectangle(Player.Position.X - 4, Player.Position.Y - 6, 8, 14));
+            //if (Utils.DEBUG) Utils.QueueDebugRect(new Rectangle(Player.Position.X - 4, Player.Position.Y - 6, 8, 14));
+
+            //int testX = (int)(Math.Cos(gameTime.TotalGameTime.TotalSeconds) * 16f);
+            //int testY = (int)(Math.Sin(gameTime.TotalGameTime.TotalSeconds) * 16f);
+
+            //Utils.QueueDebugRect(new Rectangle(-8 + testX, -8 + testY, 16, 16), new Vector2(40, 40), new Color(255, 0, 0));
+            //Utils.QueueDebugRect(new Rectangle(-8 + testX, -8 + testY, 16, 16), new Vector2(64, 40), new Color(255, 0, 0));
+            //Utils.QueueDebugRect(new Rectangle(-8 + testX, -8 + testY, 16, 16), new Vector2(88, 40), new Color(255, 0, 0));
+
+            //Utils.QueueDebugPoly(new Vector2[] {
+            //    new Vector2(-8 + testX, -8 + testY),
+            //    new Vector2( 8 + testX, -8 + testY),
+            //    new Vector2( 8 + testX,  8 + testY),
+            //    new Vector2(-8 + testX,  8 + testY)
+            //}, new Vector2(40, 40), new Color(0, 255, 0));
+
+            //MapCollider mc = new MapCollider {
+            //    ColliderType = MapColliderType.Rectangle,
+            //    Width = 16,
+            //    Height = 16,
+            //    x = 0,
+            //    y = 0,
+            //    PolyPoints = new Point[] {
+            //        new Point(-8 + testX, -8 + testY),
+            //        new Point( 8 + testX, -8 + testY),
+            //        new Point( 8 + testX,  8 + testY),
+            //        new Point(-8 + testX,  8 + testY)
+            //    }
+            //};
+
+            //Utils.QueueDebugPoly(mc.PolyPoints, new Vector2(64, 40), new Color(255, 255, 0));
+
+            //Collider c = mc.ToCollider();
+
+            //Utils.QueueDebugPoly(c.Points, new Vector2(88, 40), new Color(0, 255, 255));
 
             foreach (Particle p in Particles) {
                 p.Update(gameTime);
@@ -230,15 +269,16 @@ namespace GB_Seasons {
         private void DrawUI(GameTime gameTime) {
             GraphicsDevice.SetRenderTarget(RTMain);
 
-            UIManager.DrawWindow(spriteBatch, new GBWindow {
-                Region = new Rectangle(8, 0, 144, 32),
-                Style = BorderStyle.Rounded | BorderStyle.Raised
-            });
+            //UIManager.DrawWindow(spriteBatch, new GBWindow {
+            //    Region = new Rectangle(0, 0, 160, 32),
+            //    Style = BorderStyle.Rounded | BorderStyle.Raised
+            //});
 
-            UIManager.DrawString(spriteBatch, new GBString {
-                Region = new Rectangle(16, 8, 128, 16),
-                Text = (char)UIManager.SpecialChars.Coin + "123" + "\n" + (char)UIManager.SpecialChars.FlameSprite
-            }, gameTime);
+            //UIManager.DrawString(spriteBatch, new GBString {
+            //    Region = new Rectangle(8, 8, 144, 16),
+            //    Text = (char)UIManager.SpecialChars.Coin + "123" + "\n" + (char)UIManager.SpecialChars.FlameSprite,
+            //    ReadingMode = ReadingMode.Progressive
+            //}, gameTime);
         }
 
         private void DrawEntities(GameTime gameTime) {

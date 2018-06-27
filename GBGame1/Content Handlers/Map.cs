@@ -1,13 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Audio;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
-using System.IO;
 
 namespace GB_Seasons {
     public class Map {
@@ -25,7 +20,7 @@ namespace GB_Seasons {
         public void Load(string filename) {
             mapData = new MapData(filename);
 
-            MapBounds = mapData.Meta["map_bounds"]?.Region??new Rectangle(0, 0, 0, 0);
+            MapBounds = mapData.Meta["map_bounds"]?.Region ?? new Rectangle(0, 0, 0, 0);
             
             Loaded = true;
         }
@@ -196,7 +191,12 @@ namespace GB_Seasons {
                     int.TryParse(element.GetAttribute("height"), out int h);
                     Width = w;
                     Height = h;
-                    PolyPoints = new Point[0];
+                    PolyPoints = new Point[] {
+                        new Point(x        , y),
+                        new Point(x + Width, y),
+                        new Point(x + Width, y + Height),
+                        new Point(x        , y + Height),
+                    };
                     break;
                 case MapColliderType.Polygon:
                     XmlElement poly = (XmlElement)element.GetElementsByTagName("polygon").Item(0);
@@ -206,7 +206,7 @@ namespace GB_Seasons {
                         string[] s_point = s_points[i].Split(',');
                         int.TryParse(s_point[0], out int px);
                         int.TryParse(s_point[1], out int py);
-                        PolyPoints[i] = new Point(px + x, py + y);
+                        PolyPoints[i] = new Point(px, py);
                     }
                     break;
                 default:
@@ -217,20 +217,42 @@ namespace GB_Seasons {
         }
 
         public Collider ToCollider() {
+            Collider c;
             switch (ColliderType) {
                 case MapColliderType.Rectangle:
-                    return new Collider(new Vector2[] {
-                        new Vector2(Position.X, Position.Y),
-                        new Vector2(Position.X + Width, Position.Y),
-                        new Vector2(Position.X + Width, Position.Y + Height),
-                        new Vector2(Position.X, Position.Y + Height),
-                    });
+                    int hw = Width / 2;
+                    int hh = Height / 2;
+                    c = new Collider(new Vector2[] {
+                        new Vector2(-hw, -hh),
+                        new Vector2( hw, -hh),
+                        new Vector2( hw,  hh),
+                        new Vector2(-hw,  hh)
+                    }, Position.ToVector2() + new Vector2(hw, hh), new Vector2(0, 0));
+
+                    //Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 0), 10000);
+
+                    return c;
                 case MapColliderType.Polygon:
                     Vector2[] poly = new Vector2[PolyPoints.Length];
+                    float mx = PolyPoints[0].X;
+                    float Mx = PolyPoints[0].X;
+                    float my = PolyPoints[0].Y;
+                    float My = PolyPoints[0].Y;
                     for (int i = 0; i < PolyPoints.Length; i++) {
                         poly[i] = PolyPoints[i].ToVector2();
+                        mx = Math.Min(mx, poly[i].X);
+                        Mx = Math.Max(Mx, poly[i].X);
+                        my = Math.Min(my, poly[i].Y);
+                        My = Math.Max(My, poly[i].Y);
                     }
-                    return new Collider(poly);
+                    float pw = Mx - mx;
+                    float ph = My - my;
+                    c = new Collider(poly, Position.ToVector2(), new Vector2(mx + pw / 2f, my + ph / 2f));
+
+                    //Utils.QueueDebugPoly(PolyPoints, Position.ToVector2(), new Color(255, 255, 0), 10000);
+                    //Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 0), 10000);
+
+                    return c;
             }
             return new Collider(Position.ToVector2());
         }

@@ -12,15 +12,21 @@ namespace GB_Seasons {
         public Vector2 Velocity;
         public bool Grounded;
         float CoyoteTime;
+        public Vector2 GroundNormal = new Vector2(0, -1);
 
-        float JumpVelocity = 3.5f;
-        float CoyoteTimeDuration = 0.1f;
-        float PhysicsMaxStep = 3f;
+        public float JumpVelocity = 3.5f;
+        public float CoyoteTimeDuration = 0.1f;
+        public float PhysicsMaxStep = 3f;
 
         public event SpawnParticleEventHandler OnSpawnParticle;
 
         public Player() {
-            Collider = new Collider(new Rectangle(-4, -6, 8, 14));
+            Collider = new Collider(new Vector2[] {
+                new Vector2(-4, -6),
+                new Vector2( 4, -6),
+                new Vector2( 4,  8),
+                new Vector2(-4,  8)
+            }, new Vector2(0, 0), new Vector2(0, 0));
             AddAnimation(new SpriteAnimation("walk", new List<SpriteFrame> {
                 new SpriteFrame(new Rectangle(0,  0, 8, 16), new Rectangle(-4, -8, 8, 16), 8),
                 new SpriteFrame(new Rectangle(8,  0, 8, 16), new Rectangle(-4, -8, 8, 16), 8),
@@ -83,23 +89,33 @@ namespace GB_Seasons {
             if (motion > 0) {
                 pos += Velocity.Normalized() * motion;
             }
-            Collider.Position = pos + new Vector2(0, 1);
+            Collider.Position = pos;
 
             foreach (Collider collider in level.Colliders) {
                 Vector2 sv = new Vector2();
                 sv = Collision.Separate(Collider, collider);
-                if (Utils.DEBUG) {
-                    Utils.QueueDebugPoly(collider.Points, sv.Length() > 0 ? Color.White : Color.Black);
-                }
+                //Utils.QueueDebugPoly(collider.Points, collider.Position, sv.Length() > 0 ? Color.White : Color.Black);
 
                 if (sv.Y < 0 && Velocity.Y > 0) {
                     Grounded = true;
                     Velocity.Y = 1f;
                 }
 
+                if (sv.LengthSquared() > 0f) {
+                    GroundNormal = sv.Normalized();
+                //} else {
+                    //GroundNormal = new Vector2(0, -1);
+                }
+
+                if (sv.Y < 0 && Math.Abs(sv.X * 0.5) < Math.Abs(sv.Y)) {
+                    sv = new Vector2(0, -1) * sv.Length();
+                }
+
                 pos += sv;
                 Collider.Position = pos;
             }
+
+            //Utils.QueueDebugPoly(Collider.Points, Collider.Position, Color.White);
 
             //Utils.QueueDebugRect(new Rectangle(location: pos.ToPoint() - new Point(4, 14), size: new Point(8, 14)));
 
@@ -107,6 +123,7 @@ namespace GB_Seasons {
         }
 
         public void Reset(Point pos) {
+            if (Utils.DEBUG_FLY) return;
             Position = pos;
             Velocity = new Vector2(0, 1);
             Grounded = true;

@@ -20,11 +20,11 @@ namespace GB_Seasons {
             KeyboardMap.Add(InputAction.Up,    new Tuple<Keys, Keys>(Keys.W, Keys.Up   ));
             KeyboardMap.Add(InputAction.Down,  new Tuple<Keys, Keys>(Keys.S, Keys.Down ));
 
-            KeyboardMap.Add(InputAction.A, new Tuple<Keys, Keys>(Keys.Z, Keys.OemPeriod));
+            KeyboardMap.Add(InputAction.A, new Tuple<Keys, Keys>(Keys.Z, Keys.OemPeriod  ));
             KeyboardMap.Add(InputAction.B, new Tuple<Keys, Keys>(Keys.X, Keys.OemQuestion));
 
-            KeyboardMap.Add(InputAction.Start, new Tuple<Keys, Keys>(Keys.Enter, Keys.None));
-            KeyboardMap.Add(InputAction.Select, new Tuple<Keys, Keys>(Keys.Back, Keys.None));
+            KeyboardMap.Add(InputAction.Start,  new Tuple<Keys, Keys>(Keys.Enter, Keys.None));
+            KeyboardMap.Add(InputAction.Select, new Tuple<Keys, Keys>(Keys.Back,  Keys.None));
         }
 
         private static GamePadState PadStateLast;
@@ -42,26 +42,35 @@ namespace GB_Seasons {
 
             if (KeyState.IsKeyDown(KeyboardMap[InputAction.Left].Item1) ||
                 KeyState.IsKeyDown(KeyboardMap[InputAction.Left].Item2)) {
-                game.Player.Position.X -= 1;
+                if (Utils.DEBUG_FLY) game.Player.Position.X -= 1;
                 walkVel -= 1;
                 game.Player.Flipped = true;
             }
             if (KeyState.IsKeyDown(KeyboardMap[InputAction.Right].Item1) ||
                 KeyState.IsKeyDown(KeyboardMap[InputAction.Right].Item2)) {
-                game.Player.Position.X += 1;
+                if (Utils.DEBUG_FLY) game.Player.Position.X += 1;
                 walkVel += 1;
                 game.Player.Flipped = false;
             }
             if (KeyState.IsKeyDown(KeyboardMap[InputAction.Up].Item1) ||
                 KeyState.IsKeyDown(KeyboardMap[InputAction.Up].Item2)) {
-                game.Player.Position.Y -= 1;
+                if (Utils.DEBUG_FLY) game.Player.Position.Y -= 1;
             }
             if (KeyState.IsKeyDown(KeyboardMap[InputAction.Down].Item1) ||
                 KeyState.IsKeyDown(KeyboardMap[InputAction.Down].Item2)) {
-                game.Player.Position.Y += 1;
+                if (Utils.DEBUG_FLY) game.Player.Position.Y += 1;
             }
 
-            //game.Player.Velocity.X = walkVel;
+            if (!Utils.DEBUG_FLY) {
+                if (game.Player.Grounded) {
+                    game.Player.Velocity = game.Player.GroundNormal.PerRight().Normalized() * walkVel;
+                    if (walkVel != 0) {
+                        game.Player.Velocity /= Math.Abs(game.Player.Velocity.X);
+                    }
+                } else {
+                    game.Player.Velocity.X = walkVel;
+                }
+            }
 
             if (KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item1) ||
                 KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item2)) {
@@ -96,7 +105,7 @@ namespace GB_Seasons {
             if (KeyDown(Keys.NumPad7)) {
                 Utils.DEBUG = !Utils.DEBUG;
             }
-            if (KeyDown(Keys.NumPad7)) {
+            if (KeyDown(Keys.NumPad8)) {
                 Utils.DEBUG_FLY = !Utils.DEBUG_FLY;
             }
 

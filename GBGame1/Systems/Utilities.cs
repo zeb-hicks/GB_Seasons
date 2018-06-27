@@ -153,65 +153,106 @@ namespace GB_Seasons {
         #region Debug Drawing Queue
 
         static Queue<object> ObjQ = new Queue<object>();
+        static Queue<Vector2> OffsetQ = new Queue<Vector2>();
         static Queue<Color> ColorQ = new Queue<Color>();
+        static Queue<int> PersistenceQ = new Queue<int>();
 
-        public static void QueueDebugRect(Rectangle r, Color? c = null) {
-            ObjQ.Enqueue(r);
-            ColorQ.Enqueue(c ?? Color.White);
+        static List<DebugObject> DebugList = new List<DebugObject>();
+
+        public static void QueueDebugRect(Rectangle r, Vector2? o = null, Color? c = null, int persistence = 1) {
+            DebugList.Add(new DebugObject {
+                Object = r,
+                Offset = o ?? new Vector2(),
+                Color = c ?? Color.White,
+                Persistence = persistence
+            });
         }
 
-        public static void QueueDebugPoly(Vector2[] p, Color? c = null) {
-            ObjQ.Enqueue(p);
-            ColorQ.Enqueue(c ?? Color.White);
+        public static void QueueDebugPoly(Vector2[] p, Vector2? o = null, Color? c = null, int persistence = 1) {
+            DebugList.Add(new DebugObject {
+                Object = p,
+                Offset = o ?? new Vector2(),
+                Color = c ?? Color.White,
+                Persistence = persistence
+            });
         }
-        public static void QueueDebugPoly(Point[] p, Color? c = null) {
+        public static void QueueDebugPoly(Point[] p, Vector2? o = null, Color? c = null, int persistence = 1) {
             var poly = new Vector2[p.Length];
             for (int i = 0; i < p.Length; i++) {
                 poly[i] = p[i].ToVector2();
             }
-            ObjQ.Enqueue(poly);
-            ColorQ.Enqueue(c ?? Color.White);
+            DebugList.Add(new DebugObject {
+                Object = poly,
+                Offset = o ?? new Vector2(),
+                Color = c ?? Color.White,
+                Persistence = persistence
+            });
         }
 
-        public static void QueueDebugArrow(Vector2 p, Vector2 v, Color? c = null, float length = 12f, float size = 3f) {
-            ObjQ.Enqueue(new DebugArrow {
-                Origin = p,
-                Vector = v.Normalized(),
-                Length = length,
-                Size = size
-            });
+        public static void QueueDebugArrow(Vector2 p, Vector2 v, Color? c = null, float length = 12f, float size = 3f, int persistence = 1) {
+            OffsetQ.Enqueue(new Vector2());
             ColorQ.Enqueue(c ?? Color.White);
+            DebugList.Add(new DebugObject {
+                Object = new DebugArrow {
+                    Origin = p,
+                    Vector = v.Normalized(),
+                    Length = length,
+                    Size = size
+                },
+                Offset = new Vector2(),
+                Color = c ?? Color.White,
+                Persistence = persistence
+            });
+        }
+
+        public static void QueueDebugPoint(Vector2 p, float size, Color? c = null, int persistence = 1) {
+            QueueDebugArrow(p + new Vector2(-size, 0), new Vector2(1, 0), c, size * 2, 0f, persistence);
+            QueueDebugArrow(p + new Vector2(0, -size), new Vector2(0, 1), c, size * 2, 0f, persistence);
         }
 
         public static void QueueDraw(SpriteBatch spriteBatch) {
-            while (ObjQ.Count > 0) {
-                object o = ObjQ.Dequeue();
-                Color c = ColorQ.Dequeue();
-                if (o is Vector2[] p) {
-                    for (int i = 0; i < p.Length; i++) {
-                        MonoDebug.Primitives2D.DrawLine(spriteBatch, p[i], p[(i + 1) % p.Length], c, 0.33f);
-                    }
-                } else if (o is Rectangle r) {
-                    MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X, r.Y), new Vector2(r.X + r.Width, r.Y), c, 0.33f);
-                    MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X + r.Width, r.Y), new Vector2(r.X + r.Width, r.Y + r.Height), c, 0.33f);
-                    MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X + r.Width, r.Y + r.Height), new Vector2(r.X, r.Y + r.Height), c, 0.33f);
-                    MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X, r.Y + r.Height), new Vector2(r.X, r.Y), c, 0.33f);
-                } else if (o is DebugArrow a) {
-                    Vector2 ht = a.Origin + a.Vector * a.Length;
-                    MonoDebug.Primitives2D.DrawLine(spriteBatch, a.Origin, ht, c, 0.33f);
+            for (int i = 0; i < DebugList.Count; i++) {
+                if (DEBUG) {
+                    object o = DebugList[i].Object;
+                    Vector2 v = DebugList[i].Offset;
+                    Color c = DebugList[i].Color;
+                    if (o is Vector2[] p) {
+                        for (int pi = 0; pi < p.Length; pi++) {
+                            MonoDebug.Primitives2D.DrawLine(spriteBatch, p[pi] + v, p[(pi + 1) % p.Length] + v, c, 0.33f);
+                        }
+                    } else if (o is Rectangle r) {
+                        MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X, r.Y) + v, new Vector2(r.X + r.Width, r.Y) + v, c, 0.33f);
+                        MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X + r.Width, r.Y) + v, new Vector2(r.X + r.Width, r.Y + r.Height) + v, c, 0.33f);
+                        MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X + r.Width, r.Y + r.Height) + v, new Vector2(r.X, r.Y + r.Height) + v, c, 0.33f);
+                        MonoDebug.Primitives2D.DrawLine(spriteBatch, new Vector2(r.X, r.Y + r.Height) + v, new Vector2(r.X, r.Y) + v, c, 0.33f);
+                    } else if (o is DebugArrow a) {
+                        Vector2 ht = a.Origin + a.Vector * a.Length;
+                        MonoDebug.Primitives2D.DrawLine(spriteBatch, a.Origin, ht, c, 0.33f);
 
-                    if (a.Size > 0f) {
-                        Vector2 hl = a.Origin + a.Vector * (a.Length - a.Size) + new Vector2(a.Vector.Y, -a.Vector.X) * a.Size * 0.67f;
-                        Vector2 hr = a.Origin + a.Vector * (a.Length - a.Size) + new Vector2(-a.Vector.Y, a.Vector.X) * a.Size * 0.67f;
-                        MonoDebug.Primitives2D.DrawLine(spriteBatch, ht, hr, c, 0.33f);
-                        MonoDebug.Primitives2D.DrawLine(spriteBatch, hr, hl, c, 0.33f);
-                        MonoDebug.Primitives2D.DrawLine(spriteBatch, hl, ht, c, 0.33f);
+                        if (a.Size > 0f) {
+                            Vector2 hl = a.Origin + a.Vector * (a.Length - a.Size) + new Vector2(a.Vector.Y, -a.Vector.X) * a.Size * 0.67f;
+                            Vector2 hr = a.Origin + a.Vector * (a.Length - a.Size) + new Vector2(-a.Vector.Y, a.Vector.X) * a.Size * 0.67f;
+                            MonoDebug.Primitives2D.DrawLine(spriteBatch, ht, hr, c, 0.33f);
+                            MonoDebug.Primitives2D.DrawLine(spriteBatch, hr, hl, c, 0.33f);
+                            MonoDebug.Primitives2D.DrawLine(spriteBatch, hl, ht, c, 0.33f);
+                        }
                     }
+                }
+
+                if (--DebugList[i].Persistence <= 0) {
+                    DebugList.Remove(DebugList[i--]);
                 }
             }
         }
 
         #endregion
+    }
+
+    public class DebugObject {
+        public object Object;
+        public Vector2 Offset;
+        public Color Color;
+        public int Persistence;
     }
 
     public struct DebugArrow {

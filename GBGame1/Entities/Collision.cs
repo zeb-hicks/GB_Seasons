@@ -11,64 +11,109 @@ namespace GB_Seasons {
         private static List<SATAxis> TempAxes = new List<SATAxis>();
         public static Vector2 Separate(Collider a, Collider b) {
             var sv = new Vector2();
+            float sm = 100f;
 
-            //Utils.QueueDebugArrow(a.Position, b.Position - a.Position, Color.Cyan);
+            if (Utils.DEBUG) {
+                //Vector2 ac = a.Position + a.BBCenter;
+                //Vector2 bc = b.Position + b.BBCenter;
+                //float l = (bc - ac).Length();
+                //if (l < 50) Utils.QueueDebugArrow(ac, bc - ac, Color.Cyan, l);
+
+                //Utils.QueueDebugPoint(a.Position, 12f, Color.Orange, 1);
+
+                //Utils.QueueDebugPoint(b.Position, 12f, Color.Orange, 1);
+
+                //Utils.QueueDebugPoint(a.Position + a.BBCenter, 12f, Color.Orange, 1);
+
+                //Utils.QueueDebugPoint(b.Position + b.BBCenter, 12f, Color.Orange, 1);
+
+                //Utils.QueueDebugRect(new Rectangle((a.BBCenter - a.BBRadius).ToPoint(), (a.BBRadius * 2f).ToPoint()), a.Position, new Color(0, 255, 255));
+                //Utils.QueueDebugRect(new Rectangle((b.BBCenter - b.BBRadius).ToPoint(), (b.BBRadius * 2f).ToPoint()), b.Position, new Color(0, 255, 255));
+            }
 
             if (BoxVsBox(a, b)) {
 
                 TempAxes.Clear();
-                TempAxes.AddRange(a.Axes);
                 foreach (SATAxis ba in b.Axes) {
+                    TempAxes.Add(new SATAxis {
+                        Position = ba.Position + a.Position,
+                        Vector = ba.Vector,
+                        Magnitude = ba.Magnitude,
+                        Gradient = ba.Gradient
+                    });
+                }
+                foreach (SATAxis aa in a.Axes) {
                     bool exists = false;
-                    foreach (SATAxis aa in a.Axes) {
-                        if (!exists && Vector2.Dot(aa.Vector, ba.Vector) == 0f) {
+                    foreach (SATAxis ba in b.Axes) {
+                        if (!exists && Vector2.Dot(ba.Vector, aa.Vector) == 0f) {
                             exists = true;
                         }
                     }
-                    if (!exists) TempAxes.Add(ba);
+                    SATAxis ax = new SATAxis {
+                        Position = aa.Position + b.Position,
+                        Vector = aa.Vector,
+                        Magnitude = aa.Magnitude,
+                        Gradient = aa.Gradient
+                    };
+                    if (!exists) TempAxes.Add(ax);
                 }
 
                 foreach (SATAxis axis in TempAxes) {
-                    if (Utils.DEBUG) Utils.QueueDebugArrow(axis.Position, axis.Vector, Color.Red);
+                    ProjectionResult resulta = Project(a, axis);
+                    ProjectionResult resultb = Project(b, axis);
+                    //if (Utils.DEBUG) Utils.QueueDebugArrow(axis.Position, axis.Vector, Color.Red);
 
-                    if (Utils.DEBUG)
+                    if (Utils.DEBUG) {
+                        // Draw projection basis
                         Utils.QueueDebugPoly(new Vector2[] {
-                            a.Position + axis.Vector * 30f + axis.Vector.PerLeft()  * 15f,
-                            a.Position + axis.Vector * 30f + axis.Vector.PerRight() * 15f
-                        }, Color.White);
-                }
+                            axis.Vector.PerRight() * 30f + axis.Vector * 15f,
+                            axis.Vector.PerRight() * 30f + axis.Vector * -15f
+                        }, a.Position, Color.White);
 
-                /*
-                foreach (SATAxis axis in b.Axes) {
-                    if (Utils.DEBUG) Utils.QueueDebugArrow(axis.Position, axis.Vector, Color.Red);
-
-                    //if (Gradients.Contains(axis.Gradient)) continue;
-                    //Gradients.Add(axis.Gradient);
-
-                    if (Utils.DEBUG)
+                        // Draw projection results
                         Utils.QueueDebugPoly(new Vector2[] {
-                            b.Position + axis.Vector * 40f + axis.Vector.PerLeft() * 20f,
-                            b.Position + axis.Vector * 40f + axis.Vector.PerRight() * 20f
-                        }, Color.White);
-                }
-                foreach (SATAxis axis in a.Axes) {
-                    if (Utils.DEBUG) Utils.QueueDebugArrow(axis.Position, axis.Vector, Color.Red);
+                            axis.Vector.PerRight() * 29f + axis.Vector * resulta.Min,
+                            axis.Vector.PerRight() * 29f + axis.Vector * resulta.Max
+                        }, a.Position, new Color(255, 0, 0));
 
-                    //if (Gradients.Contains(axis.Gradient)) continue;
-                    //Gradients.Add(axis.Gradient);
-
-                    if (Utils.DEBUG)
+                        // Draw projection results
                         Utils.QueueDebugPoly(new Vector2[] {
-                            a.Position + axis.Vector * 40f + axis.Vector.PerLeft() * 20f,
-                            a.Position + axis.Vector * 40f + axis.Vector.PerRight() * 20f
-                        }, Color.White);
+                            axis.Vector.PerRight() * 28f + axis.Vector * resultb.Min,
+                            axis.Vector.PerRight() * 28f + axis.Vector * resultb.Max
+                        }, a.Position, new Color(0, 255, 0));
+                    }
+
+                    float mag = 0f;
+
+                    if (resulta.Mid > resultb.Mid) {
+                        mag = resultb.Max - resulta.Min;
+                        Utils.QueueDebugArrow(a.Position + axis.Vector.PerRight() * 28f + axis.Vector * resultb.Max, axis.Vector, new Color(0, 0, 255), mag);
+
+                        if (mag <= 0f) {
+                            return new Vector2();
+                        }
+                    } else {
+                        mag = resultb.Min - resulta.Max;
+                        Utils.QueueDebugArrow(a.Position + axis.Vector.PerRight() * 28f + axis.Vector * resultb.Min, axis.Vector, new Color(0, 0, 255), mag);
+
+                        if (mag >= 0f) {
+                            return new Vector2();
+                        }
+                    }
+
+                    if (Math.Abs(mag) < Math.Abs(sm)) {
+                        sv = axis.Vector * mag;
+                        sm = mag;
+                    }
                 }
-                */
 
             }
 
+            if (sm > 0f) Utils.QueueDebugArrow(a.Position, sv, Color.Red, sm);
+
             return sv;
         }
+
         public static Vector2 Separate(Vector2 v, Rectangle r) {
             var sv = new Vector2();
 
@@ -93,59 +138,27 @@ namespace GB_Seasons {
             return sv;
         }
 
-        public static Vector2 Separate(Rectangle c, Rectangle r) {
-            return Separate(new Vector2[] {
-                new Vector2(c.X, c.Y),
-                new Vector2(c.X, c.Y),
-                new Vector2(c.X, c.Y),
-                new Vector2(c.X, c.Y),
-            }, new Vector2[] {
-                new Vector2(r.X, r.Y),
-                new Vector2(r.X, r.Y),
-                new Vector2(r.X, r.Y),
-                new Vector2(r.X, r.Y),
-            });
-        }
-        public static Vector2 Separate(Vector2 v, Point[] poly) {
-            var sv = new Vector2();
+        public static ProjectionResult Project(Collider collider, SATAxis axis) {
+            float min = float.MaxValue, max = float.MinValue;
 
-
-
-            return sv;
-        }
-
-        /// <summary>
-        /// Separate two polygons
-        /// </summary>
-        /// <param name="a">Polygon to separate</param>
-        /// <param name="b">Polygon from which to separate</param>
-        /// <returns></returns>
-        public static Vector2 Separate(Vector2[] a, Vector2[] b) {
-            var sv = new Vector2();
-
-
-
-            return sv;
-        }
-
-        public static ProjectionResult Project(Collider collider, Vector2 axis) {
-            float min = 0f, max = 0f;
-
-            Vector2 axisn = axis.Normalized();
+            Vector2 axisn = axis.Vector.Normalized();
 
             foreach (Vector2 p in collider.Points) {
-                float dp = Vector2.Dot(axis, p);
-
+                float dp = Vector2.Dot(axisn, p + collider.Position - axis.Position);
+                min = Math.Min(dp, min);
+                max = Math.Max(dp, max);
             }
 
             return new ProjectionResult(min, max);
         }
 
         public static bool BoxVsBox(Collider a, Collider b) {
-            float x = Math.Abs(b.Position.X - a.Position.X);
-            float y = Math.Abs(b.Position.Y - a.Position.Y);
+            Vector2 p = (b.Position + b.BBCenter) - (a.Position + a.BBCenter);
+            Vector2 s = b.BBRadius + a.BBRadius;
+            p.X = Math.Abs(p.X);
+            p.Y = Math.Abs(p.Y);
 
-            return x < a.BoundingRadius.X + b.BoundingRadius.X && y < a.BoundingRadius.Y + b.BoundingRadius.Y;
+            return p.X < s.X && p.Y < s.Y;
         }
         public static bool BoxVsBox(Rectangle a,  Rectangle b) {
             float x = Math.Abs(b.X - a.X);
@@ -244,9 +257,11 @@ namespace GB_Seasons {
     public struct ProjectionResult {
         public float Min;
         public float Max;
+        public float Mid;
         public ProjectionResult(float min, float max) {
             Min = min;
             Max = max;
+            Mid = min + (max - min) / 2f;
         }
     }
 
@@ -260,20 +275,21 @@ namespace GB_Seasons {
             Position = position;
             Vector = vector;
             Magnitude = magnitude;
-            Gradient = gradient ?? Math.Abs(vector.Y / vector.X);
+            Gradient = gradient ?? (vector.X == 0 ? 0 : Math.Abs(vector.Y / vector.X));
         }
 
         public static SATAxis FromLine(Vector2 a, Vector2 b) {
             var line = b - a;
-            var axis = new Vector2(-line.Y, line.X);
+            var axis = line.PerLeft();
             float mag = axis.Length();
-            return new SATAxis(a, axis / mag, mag);
+            return new SATAxis(a + (b - a) / 2f, axis / mag, mag);
         }
     }
 
-    public struct Collider {
+    public class Collider {
         public Vector2 Position;
-        public Vector2 BoundingRadius;
+        public Vector2 BBCenter;
+        public Vector2 BBRadius;
         public Vector2[] Points;
         public SATAxis[] Axes;
         public ColliderType Type;
@@ -283,7 +299,8 @@ namespace GB_Seasons {
             float hw = rect.Width / 2;
             float hh = rect.Height / 2;
             Position = new Vector2(rect.X + hw, rect.Y + hh);
-            BoundingRadius = new Vector2(hw, hh);
+            BBCenter = Position;
+            BBRadius = new Vector2(hw, hh);
 
             Points = new Vector2[] {
                 new Vector2(rect.X, rect.Y),
@@ -307,7 +324,8 @@ namespace GB_Seasons {
             Points = new Vector2[] {v};
             Position = v;
 
-            BoundingRadius = new Vector2(0, 0);
+            BBCenter = new Vector2(0, 0);
+            BBRadius = new Vector2(0, 0);
 
             Points = new Vector2[] {v};
             Axes = new SATAxis[] {};
@@ -317,7 +335,7 @@ namespace GB_Seasons {
         /// Creates a Collider struct from a polygon defined by an array of vectors.
         /// </summary>
         /// <param name="poly">The array of vectors defining the polygon.</param>
-        public Collider(Vector2[] poly) {
+        public Collider(Vector2[] poly, Vector2 position, Vector2? offset = null) {
             // Polygon type collider setup
             Type = ColliderType.Poly;
 
@@ -330,15 +348,34 @@ namespace GB_Seasons {
             var gradients = new List<float>();
 
             // Initialise the bounding box values
-            BoundingRadius = new Vector2();
-            Position = Points[0];
+            BBCenter = new Vector2();
+            BBRadius = new Vector2();
+            //Position = Points[0];
 
-            for (int i = 0, j = Points.Length - 1; i < Points.Length; j = i++) {
+            Vector2 off = offset ?? new Vector2();
+            
+            for (int i = 0; i < Points.Length; i++) {
+                Points[i] -= off;
+            }
+            position += off;
+            Position = position;
+
+            float mx = Points[0].X - position.X;
+            float Mx = Points[0].X - position.X;
+            float my = Points[0].Y - position.Y;
+            float My = Points[0].Y - position.Y;
+
+            for (int i = 0, j = 1; i < Points.Length; i++, j = (j + 1) % Points.Length) {
                 // Set the position to the minimal X/Y coords, and the bounding box radius to the width/height
-                Position.X = Math.Min(Position.X, Points[i].X);
-                Position.Y = Math.Min(Position.Y, Points[i].Y);
-                BoundingRadius.X = Math.Max(BoundingRadius.X, Points[i].X);
-                BoundingRadius.Y = Math.Max(BoundingRadius.Y, Points[i].Y);
+                //Position.X = Math.Min(Position.X, Points[i].X);
+                //Position.Y = Math.Min(Position.Y, Points[i].Y);
+                //BBRadius.X = Math.Max(BBRadius.X, Math.Abs(Position.X - Points[i].X));
+                //BBRadius.Y = Math.Max(BBRadius.Y, Math.Abs(Position.Y - Points[i].Y));
+                // Update the polygon bounding box.
+                mx = Math.Min(mx, Points[i].X - position.X);
+                Mx = Math.Max(Mx, Points[i].X - position.X);
+                my = Math.Min(my, Points[i].Y - position.Y);
+                My = Math.Max(My, Points[i].Y - position.Y);
 
                 // Calculate the gradient of the line
                 float gradient = (Points[i].X - Points[j].X) / (Points[i].Y - Points[j].Y);
@@ -351,11 +388,11 @@ namespace GB_Seasons {
                 ta.Add(SATAxis.FromLine(Points[i], Points[j]));
             }
 
-            // Bounding radius is now the maximal X/Y coordinates of the AABB. Convert to the half width/height ("bounding radius").
-            BoundingRadius = (BoundingRadius - Position) / 2f;
+            // Calculate the bounding radius.
+            BBRadius = new Vector2(Mx - mx, My - my) / 2f;
 
-            // Position is now the minimal X/Y coordinates of the AABB. Convert to the center point by offsetting by BoundingRadius.
-            Position += BoundingRadius;
+            // Set the bounding box center to the middle of the bounding box.
+            BBCenter = new Vector2(mx, my) + BBRadius + position;
 
             // Store all the computed axes into the array.
             Axes = ta.ToArray();
