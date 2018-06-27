@@ -287,6 +287,36 @@ namespace GB_Seasons {
         public static bool PointInRect(Vector2 v, Rectangle r) {
             return (v.X >= r.X && v.X < r.X + r.Width && v.Y >= r.Y && v.Y < r.Y + r.Height);
         }
+
+        public static bool PointInCollider(Vector2 v, Collider c) {
+            float xmin = c.Points[0].X;
+            float xmax = c.Points[0].X;
+            float ymin = c.Points[0].Y;
+            float ymax = c.Points[0].Y;
+
+            Vector2 rv = v - c.Position;
+
+            //if (rv.X < c.BBCenter.X - c.BBRadius.X || rv.X > c.BBCenter.X + c.BBRadius.X || rv.Y < c.BBCenter.Y - c.BBRadius.Y | rv.Y > c.BBCenter.Y + c.BBRadius.Y) return false;
+
+            bool odd = false;
+
+            int i = 0;
+            int j = c.Points.Length - 1;
+            // Line crossing test. If an odd number of line segments were crossed, the ray started inside the polgyon.
+            // Loop over each line segment and count the number of collisions vs the ray cast from point v.
+            for (i = 0; i < c.Points.Length; i++) {
+                if (c.Points[i].Y < rv.Y && c.Points[j].Y >= rv.Y ||
+                    c.Points[j].Y < rv.Y && c.Points[i].Y >= rv.Y) {
+                    // Poly crosses the ray, check if it crosses in front or behind
+                    if (c.Points[i].X + (rv.Y - c.Points[i].Y) / (c.Points[j].Y - c.Points[i].Y) * (c.Points[j].X - c.Points[i].X) < rv.X) {
+                        odd = !odd;
+                    }
+                }
+                j = i;
+            }
+
+            return odd;
+        }
     }
 
     /// <summary>

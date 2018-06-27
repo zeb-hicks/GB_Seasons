@@ -143,47 +143,16 @@ namespace GB_Seasons {
             Input.HandleInput(this, gameTime);
 
             Player.Update(gameTime, level);
+
             foreach (Particle p in WeatherParticles) {
                 p.Update(gameTime);
-                p.TruePosition = Utils.TrueMod(p.TruePosition, level.MapBounds);
+                if (p is SnowParticle || p is LeafParticle) {
+                    p.TruePosition = Utils.TrueMod(p.TruePosition, new Rectangle(Camera.X, 0, Utils.GBW, Utils.GBH));
+                } else {
+                    p.TruePosition = Utils.TrueMod(p.TruePosition, level.MapBounds);
+                }
                 if (p.Despawn) WeatherParticles.Remove(p);
             }
-
-            //if (Utils.DEBUG) Utils.QueueDebugRect(new Rectangle(Player.Position.X - 4, Player.Position.Y - 6, 8, 14));
-
-            //int testX = (int)(Math.Cos(gameTime.TotalGameTime.TotalSeconds) * 16f);
-            //int testY = (int)(Math.Sin(gameTime.TotalGameTime.TotalSeconds) * 16f);
-
-            //Utils.QueueDebugRect(new Rectangle(-8 + testX, -8 + testY, 16, 16), new Vector2(40, 40), new Color(255, 0, 0));
-            //Utils.QueueDebugRect(new Rectangle(-8 + testX, -8 + testY, 16, 16), new Vector2(64, 40), new Color(255, 0, 0));
-            //Utils.QueueDebugRect(new Rectangle(-8 + testX, -8 + testY, 16, 16), new Vector2(88, 40), new Color(255, 0, 0));
-
-            //Utils.QueueDebugPoly(new Vector2[] {
-            //    new Vector2(-8 + testX, -8 + testY),
-            //    new Vector2( 8 + testX, -8 + testY),
-            //    new Vector2( 8 + testX,  8 + testY),
-            //    new Vector2(-8 + testX,  8 + testY)
-            //}, new Vector2(40, 40), new Color(0, 255, 0));
-
-            //MapCollider mc = new MapCollider {
-            //    ColliderType = MapColliderType.Rectangle,
-            //    Width = 16,
-            //    Height = 16,
-            //    x = 0,
-            //    y = 0,
-            //    PolyPoints = new Point[] {
-            //        new Point(-8 + testX, -8 + testY),
-            //        new Point( 8 + testX, -8 + testY),
-            //        new Point( 8 + testX,  8 + testY),
-            //        new Point(-8 + testX,  8 + testY)
-            //    }
-            //};
-
-            //Utils.QueueDebugPoly(mc.PolyPoints, new Vector2(64, 40), new Color(255, 255, 0));
-
-            //Collider c = mc.ToCollider();
-
-            //Utils.QueueDebugPoly(c.Points, new Vector2(88, 40), new Color(0, 255, 255));
 
             foreach (Particle p in Particles) {
                 p.Update(gameTime);

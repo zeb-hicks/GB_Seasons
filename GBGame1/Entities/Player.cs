@@ -11,12 +11,14 @@ namespace GB_Seasons {
         public Collider Collider;
         public Vector2 Velocity;
         public bool Grounded;
-        float CoyoteTime;
+        private float coyoteTime;
         public Vector2 GroundNormal = new Vector2(0, -1);
 
         public float JumpVelocity = 3.5f;
         public float CoyoteTimeDuration = 0.1f;
         public float PhysicsMaxStep = 3f;
+
+        private float walkVelocity;
 
         public event SpawnParticleEventHandler OnSpawnParticle;
 
@@ -78,9 +80,9 @@ namespace GB_Seasons {
             }
 
             if (Grounded) {
-                CoyoteTime = CoyoteTimeDuration;
+                coyoteTime = CoyoteTimeDuration;
             } else {
-                CoyoteTime = (float)Math.Max(-1f, CoyoteTime - gameTime.ElapsedGameTime.TotalSeconds);
+                coyoteTime = (float)Math.Max(-1f, coyoteTime - gameTime.ElapsedGameTime.TotalSeconds);
             }
 
             base.Update(gameTime);
@@ -132,11 +134,15 @@ namespace GB_Seasons {
             //Utils.QueueDebugPoint(Position.ToVector2(), 12f, new Color(0, 255, 255), 1000);
         }
 
+        public void Walk(float vel) {
+            walkVelocity = vel;
+        }
+
         public void Jump() {
-            if (Grounded || CoyoteTime > 0f) {
+            if (Grounded || coyoteTime > 0f) {
                 Velocity.Y = -JumpVelocity;
                 Grounded = false;
-                CoyoteTime = -1f;
+                coyoteTime = -1f;
             }
         }
 
