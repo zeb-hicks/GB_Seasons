@@ -97,7 +97,7 @@ namespace GB_Seasons {
             //    Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 0), 10000);
             //}
 
-            Player.Position = level.Meta["start_point"].Position - new Point(0, -8);
+            Player.Position = level.Meta["start_point"].Position - new Point(0, 8);
 
             CameraBounds = new Rectangle(level.MapBounds.X, level.MapBounds.Y, level.MapBounds.Width - Utils.GBW, level.MapBounds.Height - Utils.GBH);
 

@@ -16,8 +16,8 @@ namespace GB_Seasons {
         public static int GBH = 144;
         private static readonly Random random = new Random((int)DateTime.Now.Ticks);
 
-        public static bool DEBUG = true;
-        public static bool DEBUG_FLY = true;
+        public static bool DEBUG = false;
+        public static bool DEBUG_FLY = false;
 
         public static Point PointWithinRect(Point p, Rectangle r) {
             return new Point(Math.Min(Math.Max(p.X, r.X), r.X + r.Width), Math.Min(Math.Max(p.Y, r.Y), r.Y + r.Height));
@@ -131,11 +131,13 @@ namespace GB_Seasons {
         }
 
         public static Vector3 Normalized(this Vector3 v) {
+            //if (v.X == 0 && v.Y == 0) return v;
             Vector3 n = v;
             n.Normalize();
             return n;
         }
         public static Vector2 Normalized(this Vector2 v) {
+            //if (v.X == 0 && v.Y == 0) return v;
             Vector2 n = v;
             n.Normalize();
             return n;

@@ -22,10 +22,10 @@ namespace GB_Seasons {
 
         public Player() {
             Collider = new Collider(new Vector2[] {
-                new Vector2(-4, -6),
-                new Vector2( 4, -6),
-                new Vector2( 4,  8),
-                new Vector2(-4,  8)
+                new Vector2(-3, -6),
+                new Vector2( 3, -6),
+                new Vector2( 3,  8),
+                new Vector2(-3,  8)
             }, new Vector2(0, 0), new Vector2(0, 0));
             AddAnimation(new SpriteAnimation("walk", new List<SpriteFrame> {
                 new SpriteFrame(new Rectangle(0,  0, 8, 16), new Rectangle(-4, -8, 8, 16), 8),
@@ -64,13 +64,14 @@ namespace GB_Seasons {
             if (Utils.DEBUG_FLY) Velocity = new Vector2(0, 0);
 
             Grounded = false;
+            GroundNormal = new Vector2(0, -1);
 
             float motion = Velocity.Length();
             Vector2 pos = Position.ToVector2();
-            while (motion > PhysicsMaxStep) {
-                motion -= PhysicsMaxStep;
-                pos = ProcessCollision(level, pos, PhysicsMaxStep);
-            }
+            //while (motion > PhysicsMaxStep) {
+            //    motion -= PhysicsMaxStep;
+            //    pos = ProcessCollision(level, pos, PhysicsMaxStep);
+            //}
             pos = ProcessCollision(level, pos, motion);
             if (!Utils.DEBUG_FLY) {
                 Position = pos.ToPoint();
@@ -98,10 +99,10 @@ namespace GB_Seasons {
 
                 if (sv.Y < 0 && Velocity.Y > 0) {
                     Grounded = true;
-                    Velocity.Y = 1f;
+                    //Velocity.Y = 1f;
                 }
 
-                if (sv.LengthSquared() > 0f) {
+                if (sv.LengthSquared() > 0f && Math.Abs(sv.Y) * 2f > Math.Abs(sv.X) && sv.Y < 0) {
                     GroundNormal = sv.Normalized();
                 //} else {
                     //GroundNormal = new Vector2(0, -1);
@@ -115,7 +116,7 @@ namespace GB_Seasons {
                 Collider.Position = pos;
             }
 
-            //Utils.QueueDebugPoly(Collider.Points, Collider.Position, Color.White);
+            Utils.QueueDebugPoly(Collider.Points, Collider.Position, Color.White);
 
             //Utils.QueueDebugRect(new Rectangle(location: pos.ToPoint() - new Point(4, 14), size: new Point(8, 14)));
 
@@ -123,10 +124,12 @@ namespace GB_Seasons {
         }
 
         public void Reset(Point pos) {
+            //Utils.QueueDebugPoint(pos.ToVector2(), 12f, new Color(255, 128, 0), 1000);
             if (Utils.DEBUG_FLY) return;
-            Position = pos;
+            Position = pos - new Point(0, 8);
             Velocity = new Vector2(0, 1);
             Grounded = true;
+            //Utils.QueueDebugPoint(Position.ToVector2(), 12f, new Color(0, 255, 255), 1000);
         }
 
         public void Jump() {

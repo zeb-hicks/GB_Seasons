@@ -11,7 +11,7 @@ namespace GB_Seasons {
         private static List<SATAxis> TempAxes = new List<SATAxis>();
         public static Vector2 Separate(Collider a, Collider b) {
             var sv = new Vector2();
-            float sm = 100f;
+            float sm = float.MaxValue;
 
             if (Utils.DEBUG) {
                 //Vector2 ac = a.Position + a.BBCenter;
@@ -109,7 +109,9 @@ namespace GB_Seasons {
 
             }
 
-            if (sm > 0f) Utils.QueueDebugArrow(a.Position, sv, Color.Red, sm);
+            if (sm > 0.1f && sm < float.MaxValue) {
+                Utils.QueueDebugArrow(a.Position, sv, Color.Red, sm);
+            }
 
             return sv;
         }

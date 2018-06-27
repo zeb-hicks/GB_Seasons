@@ -62,9 +62,10 @@ namespace GB_Seasons {
             }
 
             if (!Utils.DEBUG_FLY) {
+                //Console.WriteLine(game.Player.Position + " -> " + game.Player.Velocity + ", " + walkVel + " (Grounded: " + game.Player.Grounded + ", Jumped: " + hasJumped + ")");
                 if (game.Player.Grounded) {
                     game.Player.Velocity = game.Player.GroundNormal.PerRight().Normalized() * walkVel;
-                    if (walkVel != 0) {
+                    if (walkVel != 0 && game.Player.Velocity.X != 0) {
                         game.Player.Velocity /= Math.Abs(game.Player.Velocity.X);
                     }
                 } else {
@@ -72,13 +73,15 @@ namespace GB_Seasons {
                 }
             }
 
-            if (KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item2)) {
+            if (KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item1) && !KeyStateLast.IsKeyDown(KeyboardMap[InputAction.A].Item1) ||
+                KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item2) && !KeyStateLast.IsKeyDown(KeyboardMap[InputAction.A].Item2)) {
                 if (!hasJumped) {
                     hasJumped = true;
                     game.Player.Jump();
                 }
-            } else {
+            }
+            if (!(KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item1) ||
+                KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item2))) {
                 game.Player.StopJump();
                 hasJumped = false;
             }
