@@ -114,6 +114,7 @@ namespace GB_Seasons {
             RTWindow = new RenderTarget2D(GraphicsDevice, Utils.GBW, Utils.GBH);
 
             Player.SetTexture(Sprites);
+            Player.SpawnParticle += PlayerSpawnParticle;
 
             UIManager.Init(
                 Content.Load<Texture2D>("text"),
@@ -154,9 +155,9 @@ namespace GB_Seasons {
                 if (p.Despawn) WeatherParticles.Remove(p);
             }
 
-            foreach (Particle p in Particles) {
-                p.Update(gameTime);
-                if (p.Despawn) Particles.Remove(p);
+            for (int pi = 0; pi < Particles.Count; pi++) {
+                Particles[pi].Update(gameTime);
+                if (Particles[pi].Despawn) Particles.Remove(Particles[pi--]);
             }
 
             if (!level.MapBounds.Contains(Player.Position)) {
@@ -248,11 +249,29 @@ namespace GB_Seasons {
             //    Text = (char)UIManager.SpecialChars.Coin + "123" + "\n" + (char)UIManager.SpecialChars.FlameSprite,
             //    ReadingMode = ReadingMode.Progressive
             //}, gameTime);
+
+            //UIManager.DrawString(spriteBatch, new GBString {
+            //    Region = new Rectangle(0, 0, 160, 8),
+            //    Text = Player.CurrentAnimation + " - " + Player.State.ToString()
+            //}, gameTime, true);
+
+            //UIManager.DrawString(spriteBatch, new GBString {
+            //    Region = new Rectangle(0, 8, 160, 8),
+            //    Text = Player.Grounded ? "Grounded" : "Airborne"
+            //}, gameTime, true);
+        }
+
+        private void PlayerSpawnParticle(object sender, SpawnParticleEventArgs p) {
+            Particles.Add(p.Particle);
         }
 
         private void DrawEntities(GameTime gameTime) {
             Player.Draw(spriteBatch);
 
+            foreach (Particle p in Particles) {
+                Utils.QueueDebugPoint(p.Position.ToVector2(), 5f, new Color(0, 255, 255));
+                p.Draw(spriteBatch);
+            }
             foreach (Particle p in WeatherParticles) {
                 p.Draw(spriteBatch);
             }

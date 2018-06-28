@@ -29,7 +29,7 @@ struct VertexShaderOutput
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
 	float4 c = tex2D(SpriteTextureSampler,input.TextureCoordinates) * input.Color;
-	if (Invert) c.rgb = float3(1.0, 1.0, 1.0) - c.rgb;
+	if (Invert && c.a > 0.5f) c.rgb = float3(1.0, 1.0, 1.0) - c.rgb;
 	return c;
 }
 

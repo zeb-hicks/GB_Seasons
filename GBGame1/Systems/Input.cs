@@ -36,62 +36,12 @@ namespace GB_Seasons {
             if (PadState.Buttons.Back == ButtonState.Pressed || KeyState.IsKeyDown(Keys.Escape))
                 game.Exit();
 
-            int walkVel = 0;
-
-            if (KeyState.IsKeyDown(KeyboardMap[InputAction.Left].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.Left].Item2)) {
-                if (Utils.DEBUG_FLY) game.Player.Position.X -= 1;
-                walkVel -= 1;
-                game.Player.Flipped = true;
-            }
-            if (KeyState.IsKeyDown(KeyboardMap[InputAction.Right].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.Right].Item2)) {
-                if (Utils.DEBUG_FLY) game.Player.Position.X += 1;
-                walkVel += 1;
-                game.Player.Flipped = false;
-            }
-            if (KeyState.IsKeyDown(KeyboardMap[InputAction.Up].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.Up].Item2)) {
-                if (Utils.DEBUG_FLY) game.Player.Position.Y -= 1;
-            }
-            if (KeyState.IsKeyDown(KeyboardMap[InputAction.Down].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.Down].Item2)) {
-                if (Utils.DEBUG_FLY) game.Player.Position.Y += 1;
+            foreach (InputAction a in Enum.GetValues(typeof(InputAction))) {
+                bool down = KeyState.IsKeyDown(KeyboardMap[a].Item1) || KeyState.IsKeyDown(KeyboardMap[a].Item2);
+                game.Player.HandleInput(a, down);
             }
 
-            if (!Utils.DEBUG_FLY) {
-                //Console.WriteLine(game.Player.Position + " -> " + game.Player.Velocity + ", " + walkVel + " (Grounded: " + game.Player.Grounded + ", Jumped: " + hasJumped + ")");
-                if (game.Player.Grounded) {
-                    game.Player.Velocity = game.Player.GroundNormal.PerRight().Normalized() * walkVel;
-                    if (walkVel != 0 && game.Player.Velocity.X != 0) {
-                        game.Player.Velocity /= Math.Abs(game.Player.Velocity.X);
-                    }
-                } else {
-                    game.Player.Velocity.X = walkVel;
-                }
-            }
-
-            if (KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item1) && !KeyStateLast.IsKeyDown(KeyboardMap[InputAction.A].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item2) && !KeyStateLast.IsKeyDown(KeyboardMap[InputAction.A].Item2)) {
-                game.Player.Jump();
-            }
-            if (!(KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.A].Item2))) {
-                game.Player.StopJump();
-            }
-
-            if (KeyState.IsKeyDown(KeyboardMap[InputAction.B].Item1) && !KeyStateLast.IsKeyDown(KeyboardMap[InputAction.B].Item1) ||
-                KeyState.IsKeyDown(KeyboardMap[InputAction.B].Item2) && !KeyStateLast.IsKeyDown(KeyboardMap[InputAction.B].Item2)) {
-                game.Player.Dash();
-            }
-
-            game.Player.Walk(walkVel);
-
-            if (game.Player.Grounded) {
-                game.Player.CurrentAnimation = walkVel == 0 ? "stand" : "walk";
-            } else {
-                game.Player.CurrentAnimation = game.Player.Velocity.Y < -2f ? "jump" : "fall";
-            }
+            // Debug stuff.
 
             if (KeyDown(Keys.NumPad0)) {
                 game.SetSeason(Season.Spring);
@@ -115,6 +65,12 @@ namespace GB_Seasons {
 
             PadStateLast = PadState;
             KeyStateLast = KeyState;
+        }
+
+        public static bool InputDown(InputAction a) {
+            Keys k1 = KeyboardMap[a].Item1;
+            Keys k2 = KeyboardMap[a].Item2;
+            return KeyState.IsKeyDown(k1) || KeyState.IsKeyDown(k2);
         }
 
         private static bool KeyDown(Keys key) {
