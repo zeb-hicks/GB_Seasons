@@ -317,6 +317,20 @@ namespace GB_Seasons {
             p.SetTexture(Texture);
             OnSpawnParticle(new SpawnParticleEventArgs(p));
         }
+
+        private void SpawnDashParticle(object sender, SpriteAnimation anim) {
+            if (!Grounded) return;
+            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 2), Flipped);
+            p.SetTexture(Texture);
+            OnSpawnParticle(new SpawnParticleEventArgs(p));
+        }
+
+        private void SpawnAttackParticle(object sender, SpriteAnimation anim) {
+            if (!Grounded) return;
+            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 2), Flipped);
+            p.SetTexture(Texture);
+            OnSpawnParticle(new SpawnParticleEventArgs(p));
+        }
     }
 
     public enum PlayerState {

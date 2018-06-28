@@ -48,19 +48,19 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Content Handlers\Map.cs" />
-    <Compile Include="Entities\BeeParticle.cs" />
-    <Compile Include="Entities\ButterflyParticle.cs" />
-    <Compile Include="Entities\Collision.cs" />
-    <Compile Include="Entities\DustPuffParticle.cs" />
+    <Compile Include="Entities\Particles\BeeParticle.cs" />
+    <Compile Include="Entities\Particles\ButterflyParticle.cs" />
+    <Compile Include="Systems\Collision.cs" />
+    <Compile Include="Entities\Particles\DustPuffParticle.cs" />
     <Compile Include="Systems\MonoDebug.cs" />
     <Compile Include="GBGame.cs" />
     <Compile Include="Systems\Input.cs" />
-    <Compile Include="Entities\LeafParticle.cs" />
+    <Compile Include="Entities\Particles\LeafParticle.cs" />
     <Compile Include="Entities\Particle.cs" />
     <Compile Include="Entities\Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Entities\SnowParticle.cs" />
+    <Compile Include="Entities\Particles\SnowParticle.cs" />
     <Compile Include="Entities\SpriteEntity.cs" />
     <Compile Include="Systems\StoryState.cs" />
     <Compile Include="Systems\UIManager.cs" />
