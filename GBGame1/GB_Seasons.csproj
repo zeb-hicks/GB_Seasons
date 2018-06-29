@@ -50,6 +50,7 @@
     <Compile Include="Content Handlers\Map.cs" />
     <Compile Include="Entities\Particles\BeeParticle.cs" />
     <Compile Include="Entities\Particles\ButterflyParticle.cs" />
+    <Compile Include="Entities\Particles\PlayerAttackParticle.cs" />
     <Compile Include="Systems\Collision.cs" />
     <Compile Include="Entities\Particles\DustPuffParticle.cs" />
     <Compile Include="Systems\MonoDebug.cs" />

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GB_Seasons {
+namespace GB_Seasons.Systems {
 
     public static class UIManager {
         public static Texture2D CharMap;

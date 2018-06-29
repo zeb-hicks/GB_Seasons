@@ -6,6 +6,11 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
+using GB_Seasons.Systems;
+using GB_Seasons.ContentHandlers;
+using GB_Seasons.Entities;
+using GB_Seasons.Entities.Particles;
+
 namespace GB_Seasons {
     /// <summary>
     /// This is the main type for your game.
@@ -148,7 +153,7 @@ namespace GB_Seasons {
             foreach (Particle p in WeatherParticles) {
                 p.Update(gameTime);
                 if (p is SnowParticle || p is LeafParticle) {
-                    p.TruePosition = Utils.TrueMod(p.TruePosition, new Rectangle(Camera.X, 0, Utils.GBW, Utils.GBH));
+                    p.TruePosition = Utils.TrueMod(p.TruePosition, new Rectangle(Camera.X, 0, Utils.GBW * 2, Utils.GBH * 2));
                 } else {
                     p.TruePosition = Utils.TrueMod(p.TruePosition, level.MapBounds);
                 }

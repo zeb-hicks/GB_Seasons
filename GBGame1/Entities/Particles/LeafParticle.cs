@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GB_Seasons {
+namespace GB_Seasons.Entities.Particles {
     class LeafParticle : Particle {
         public LeafParticle(Point position, int leafStyle = 0, int startFrame = 0) {
             Velocity = new Vector2((float)(startFrame / 4.0 * Math.PI), 0.2f);

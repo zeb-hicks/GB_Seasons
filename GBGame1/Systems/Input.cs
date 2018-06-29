@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GB_Seasons {
+namespace GB_Seasons.Systems {
     public static class Input {
 
         public static Dictionary<InputAction, Tuple<Keys, Keys>> KeyboardMap = new Dictionary<InputAction, Tuple<Keys, Keys>>();
@@ -18,8 +18,8 @@ namespace GB_Seasons {
             KeyboardMap.Add(InputAction.Up,    new Tuple<Keys, Keys>(Keys.W, Keys.Up   ));
             KeyboardMap.Add(InputAction.Down,  new Tuple<Keys, Keys>(Keys.S, Keys.Down ));
 
-            KeyboardMap.Add(InputAction.A, new Tuple<Keys, Keys>(Keys.Z, Keys.Space    ));
-            KeyboardMap.Add(InputAction.B, new Tuple<Keys, Keys>(Keys.X, Keys.LeftShift));
+            KeyboardMap.Add(InputAction.A, new Tuple<Keys, Keys>(Keys.Z, Keys.LeftControl));
+            KeyboardMap.Add(InputAction.B, new Tuple<Keys, Keys>(Keys.X, Keys.LeftShift  ));
 
             KeyboardMap.Add(InputAction.Start,  new Tuple<Keys, Keys>(Keys.Enter, Keys.None));
             KeyboardMap.Add(InputAction.Select, new Tuple<Keys, Keys>(Keys.Back,  Keys.None));

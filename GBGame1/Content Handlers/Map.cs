@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml;
 
-namespace GB_Seasons {
+namespace GB_Seasons.ContentHandlers {
     public class Map {
         private MapData mapData;
         public bool Loaded { get; set; }

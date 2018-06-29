@@ -10,7 +10,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Xna.Framework.Design;
 
-namespace GB_Seasons {
+namespace GB_Seasons.Systems {
     public static class Utils {
         public static int GBW = 160;
         public static int GBH = 144;

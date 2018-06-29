@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GB_Seasons {
+namespace GB_Seasons.Entities {
     public class Particle : SpriteEntity {
         public Vector2 TruePosition;
         public Vector2 Velocity;

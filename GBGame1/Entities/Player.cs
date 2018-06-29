@@ -6,7 +6,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GB_Seasons {
+using GB_Seasons.Entities;
+using GB_Seasons.Entities.Particles;
+
+namespace GB_Seasons.Entities {
     public class Player : SpriteEntity {
         public Collider Collider;
         public Vector2 Velocity;
@@ -79,6 +82,9 @@ namespace GB_Seasons {
                 }, frameCollider: roll_collider),
             }));
             AddAnimation(new SpriteAnimation("attack", new List<SpriteFrame> {
+                new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16)),
+                new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16)),
+                new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16)),
                 new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16)),
             }));
 
@@ -186,7 +192,7 @@ namespace GB_Seasons {
                     break;
                 case PlayerState.Roll:
                     SetAnimation("roll");
-                    if (!InputsPressed[InputAction.B] && TryForState(PlayerState.Stand)) goto RetestState;
+                    if (!InputsPressed[InputAction.Down] && TryForState(PlayerState.Stand)) goto RetestState;
                     TryForState(PlayerState.Jump);
                     State = PlayerState.Roll;
                     HasAerialControl = false;
@@ -235,7 +241,7 @@ namespace GB_Seasons {
                     }
                     break;
                 case PlayerState.Roll:
-                    if (InputsPressed[InputAction.Down] && InputsDown[InputAction.B]) {
+                    if (InputsPressed[InputAction.Down] && walkVelocity != 0) {
                         State = PlayerState.Roll;
                         return true;
                     }
@@ -313,21 +319,21 @@ namespace GB_Seasons {
 
         private void SpawnDustParticle(object sender, SpriteAnimation anim) {
             if (!Grounded) return;
-            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 2), Flipped);
+            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
             p.SetTexture(Texture);
             OnSpawnParticle(new SpawnParticleEventArgs(p));
         }
 
         private void SpawnDashParticle(object sender, SpriteAnimation anim) {
             if (!Grounded) return;
-            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 2), Flipped);
+            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
             p.SetTexture(Texture);
             OnSpawnParticle(new SpawnParticleEventArgs(p));
         }
 
         private void SpawnAttackParticle(object sender, SpriteAnimation anim) {
             if (!Grounded) return;
-            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 2), Flipped);
+            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
             p.SetTexture(Texture);
             OnSpawnParticle(new SpawnParticleEventArgs(p));
         }
