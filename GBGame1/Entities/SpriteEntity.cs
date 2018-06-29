@@ -6,6 +6,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
+using GB_Seasons.Systems;
+using GB_Seasons.ContentHandlers;
+
 namespace GB_Seasons.Entities {
     public partial class SpriteEntity {
         public Point Position;

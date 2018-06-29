@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Xml;
 
+using GB_Seasons.Systems;
+
 namespace GB_Seasons.ContentHandlers {
     public class Map {
         private MapData mapData;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace MonoDebug.Systems {
+namespace MonoDebug {
     /// <summary>
     /// </summary>
     public static class Primitives2D {
