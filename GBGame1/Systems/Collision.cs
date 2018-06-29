@@ -35,19 +35,19 @@ namespace GB_Seasons.Systems {
                     });
                 }
                 foreach (SATAxis a_axis in a.Axes) {
-                    bool exists = false;
-                    foreach (SATAxis ba in b.Axes) {
-                        if (!exists && Vector2.Dot(ba.Vector, a_axis.Vector) == 0f) {
-                            exists = true;
-                        }
-                    }
-                    if (!exists) {
+                    //bool exists = false;
+                    //foreach (SATAxis ba in b.Axes) {
+                    //    if (!exists && Vector2.Dot(ba.Vector, a_axis.Vector) == 0f) {
+                    //        exists = true;
+                    //    }
+                    //}
+                    //if (!exists) {
                         // Add unique axis to the temporary axis list.
                         tempAxes.Add(new SATAxis {
                             Vector = a_axis.Vector,
                             Gradient = a_axis.Gradient
                         });
-                    }
+                    //}
                 }
 
                 // Loop over all of the unique axes and check for collision.
@@ -56,6 +56,24 @@ namespace GB_Seasons.Systems {
                     // Project each collider onto the axis.
                     ProjectionResult result_a = Project(a, axis);
                     ProjectionResult result_b = Project(b, axis);
+
+                    // Draw projection basis
+                    Utils.QueueDebugPoly(new Vector2[] {
+                        axis.Vector.PerRight() * 30f + axis.Vector * 15f,
+                        axis.Vector.PerRight() * 30f + axis.Vector * -15f
+                    }, a.Position, Color.White);
+
+                    // Draw projection results
+                    Utils.QueueDebugPoly(new Vector2[] {
+                        axis.Vector.PerRight() * 29f + axis.Vector * result_a.Min,
+                        axis.Vector.PerRight() * 29f + axis.Vector * result_a.Max
+                    }, a.Position, new Color(255, 0, 0));
+
+                    // Draw projection results
+                    Utils.QueueDebugPoly(new Vector2[] {
+                        axis.Vector.PerRight() * 28f + axis.Vector * result_b.Min,
+                        axis.Vector.PerRight() * 28f + axis.Vector * result_b.Max
+                    }, a.Position, new Color(0, 255, 0));
 
                     float magnitude = 0f;
 
@@ -452,7 +470,7 @@ namespace GB_Seasons.Systems {
                 float gradient = (Points[i].X - Points[j].X) / (Points[i].Y - Points[j].Y);
 
                 // Ignore this axis if we've already stored it by checking against our known gradients.
-                if (gradients.Contains(gradient) || gradients.Contains(-gradient)) continue;
+                if (gradients.Contains(gradient)) continue;
                 gradients.Add(gradient);
 
                 // Add unique axes to the list

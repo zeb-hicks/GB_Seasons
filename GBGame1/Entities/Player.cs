@@ -263,6 +263,7 @@ namespace GB_Seasons.Entities {
             Utils.QueueDebugPoly(col.Points, pos, new Color(255, 255, 0));
 
             foreach (Collider collider in level.Colliders) {
+                Utils.QueueDebugPoly(collider.Points, collider.Position, new Color(255, 0, 0));
                 Vector2 sv = new Vector2();
                 sv = Collision.Separate(col, collider);
 
