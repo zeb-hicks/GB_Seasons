@@ -14,6 +14,13 @@ namespace GB_Seasons.ContentHandlers {
         public Dictionary<string, MapObject> Meta { get { return mapData.Meta; } }
         public List<MapObject> Objects { get { return mapData.Objects; } }
         public List<Collider> Colliders { get { return mapData.Colliders; } }
+        public List<Collider> Volumes { get { return mapData.Volumes; } }
+
+        public float FadeAmount = 1f;
+        public Vector2 FadePos = new Vector2();
+        private float layerFade = 1f;
+
+        public Effect TilemapEffect;
 
         public Map() {
             Loaded = false;
@@ -27,7 +34,12 @@ namespace GB_Seasons.ContentHandlers {
             Loaded = true;
         }
 
-        public void Draw(SpriteBatch spriteBatch, Texture2D tileset, int layer, int season, int x, int y) {
+        public void Draw(SpriteBatch spriteBatch, Texture2D tileset, int layer, int season, int x, int y, Matrix matrix) {
+            TilemapEffect.Parameters["FadePos"]?.SetValue(FadePos);
+            TilemapEffect.Parameters["FadeAmount"]?.SetValue(layer == 2 ? FadeAmount : 0);
+
+            spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.NonPremultiplied, SamplerState.PointWrap, DepthStencilState.Default, RasterizerState.CullNone, TilemapEffect, matrix);
+
             int tw = tileset.Width / 8;
             MapLayer L = mapData.Layers[layer];
             for (int ty = 0; ty < L.Height; ty++) {
@@ -69,6 +81,8 @@ namespace GB_Seasons.ContentHandlers {
                     }
                 }
             }
+
+            spriteBatch.End();
         }
     }
 
@@ -79,7 +93,7 @@ namespace GB_Seasons.ContentHandlers {
         public Dictionary<string, MapObject> Meta {get; private set; }
         public List<MapObject> Objects { get; private set; }
         public List<Collider> Colliders { get; private set; }
-
+        public List<Collider> Volumes { get; private set; }
 
         public MapData(string filename) {
             Layers = new List<MapLayer>();
@@ -99,11 +113,34 @@ namespace GB_Seasons.ContentHandlers {
             Meta = new Dictionary<string, MapObject>();
             Objects = new List<MapObject>();
             Colliders = new List<Collider>();
+            Volumes = new List<Collider>();
             XmlNodeList objectgroups = map.GetElementsByTagName("objectgroup");
             foreach (XmlElement group in objectgroups) {
+                string groupname = group.GetAttribute("name");
                 foreach (XmlElement obj in group.GetElementsByTagName("object")) {
-                    if (group.GetAttribute("name") == "Collision") {
-                        Colliders.Add(new MapCollider(obj).ToCollider());
+                    string type = obj.GetAttribute("type");
+                    string name = obj.GetAttribute("name");
+                    if (groupname == "Collision" || groupname == "Volumes") {
+                        MapCollider mc = new MapCollider(obj);
+                        Collider c = mc.ToCollider();
+                        switch (type) {
+                            case "secret":
+                                c.Mode = ColliderMode.Secret;
+                                Volumes.Add(c);
+                                break;
+                            case "death":
+                                c.Mode = ColliderMode.Death;
+                                Volumes.Add(c);
+                                break;
+                            case "":
+                                c.Mode = ColliderMode.Collision;
+                                Colliders.Add(c);
+                                break;
+                            default:
+                                c.Mode = ColliderMode.Zone;
+                                Volumes.Add(c);
+                                break;
+                        }
                     } else if (group.GetAttribute("name") == "Meta") {
                         Meta.Add(obj.GetAttribute("name"), new MapObject(obj));
                     } else {
@@ -179,6 +216,7 @@ namespace GB_Seasons.ContentHandlers {
         public int Width;
         public int Height;
         public Point[] PolyPoints;
+        public string Meta;
 
         public Point Position {
             get { return new Point(x, y); }
@@ -192,6 +230,9 @@ namespace GB_Seasons.ContentHandlers {
             y = int.Parse(element.GetAttribute("y"));
             Width = 0;
             Height = 0;
+
+            Meta = element.GetAttribute("type");
+
             if (element.GetElementsByTagName("polygon").Count > 0) {
                 ColliderType = MapColliderType.Polygon;
             } else {
@@ -260,6 +301,8 @@ namespace GB_Seasons.ContentHandlers {
                     float pw = Mx - mx;
                     float ph = My - my;
                     c = new Collider(poly, Position.ToVector2(), new Vector2(mx + pw / 2f, my + ph / 2f));
+
+                    c.Metadata = Meta;
 
                     //Utils.QueueDebugPoly(PolyPoints, Position.ToVector2(), new Color(255, 255, 0), 10000);
                     //Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 0), 10000);

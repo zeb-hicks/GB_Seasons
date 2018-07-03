@@ -35,6 +35,7 @@ namespace GB_Seasons {
         public Texture2D Sprites;
         public Texture2D ColorLut;
         public Texture2D GlowLut;
+        public Texture2D FadeLut;
 
         public Player Player { get; private set; }
 
@@ -110,10 +111,17 @@ namespace GB_Seasons {
             Sprites = Content.Load<Texture2D>("sprites");
             ColorLut = Content.Load<Texture2D>("color_lut");
             GlowLut = Content.Load<Texture2D>("glowmask");
+            FadeLut = Content.Load<Texture2D>("dither_fade");
 
             LightMap = Content.Load<Effect>("LightMap");
             LightMap.Parameters["ColorLUT"]?.SetValue(ColorLut);
             LightMap.Parameters["GlowLUT"]?.SetValue(GlowLut);
+            LightMap.Parameters["FadeLUT"]?.SetValue(FadeLut);
+
+            level.TilemapEffect = Content.Load<Effect>("TilemapEffect");
+            level.TilemapEffect.Parameters["FadeLut"]?.SetValue(FadeLut);
+
+            Audio.LoadSFX(Content);
 
             RTMain = new RenderTarget2D(GraphicsDevice, Utils.GBW, Utils.GBH);
             RTWindow = new RenderTarget2D(GraphicsDevice, Utils.GBW, Utils.GBH);
@@ -144,18 +152,63 @@ namespace GB_Seasons {
         /// checking for collisions, gathering input, and playing audio.
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
+        KeyboardState pkb;
         protected override void Update(GameTime gameTime) {
+
+            #region Debug frame-by-frame
+
+            KeyboardState ks = Keyboard.GetState();
+            if (ks.IsKeyDown(Keys.Add) && !pkb.IsKeyDown(Keys.Add)) Utils.DEBUG_FBF = !Utils.DEBUG_FBF;
+            if (ks.IsKeyDown(Keys.Subtract) && !pkb.IsKeyDown(Keys.Subtract)) Utils.DEBUG_FBF_NEXT = true;
+            pkb = ks;
+            if (Utils.DEBUG_FBF && !Utils.DEBUG_FBF_NEXT) return;
+            Utils.DEBUG_FBF_NEXT = false;
+
+            #endregion
+
+            #region Debug queue
+            Utils.QueueFlush();
+            #endregion
 
             Input.HandleInput(this, gameTime);
 
             Player.Update(gameTime, level);
 
+            Player.InSecret = false;
+
+            foreach (Collider volume in level.Volumes) {
+                if (Collision.PointInPoly(Player.Position.ToVector2(), volume.Points, volume.Position)) {
+                    if (volume.Mode == ColliderMode.Secret) {
+                        Player.InSecret = true;
+                    }
+                }
+            }
+
+            level.FadePos = Player.Position.ToVector2() - Camera.ToVector2() - new Vector2(Utils.GBW / 2, Utils.GBH / 2);
+
+            float ft = Player.InSecret ? 1f : 0f;
+            level.FadeAmount = Utils.Lerpf(level.FadeAmount, ft, (float)gameTime.ElapsedGameTime.TotalSeconds * 3f);
+
             foreach (Particle p in WeatherParticles) {
+                Vector2 prevPos = p.TruePosition;
+
                 p.Update(gameTime);
-                if (p is SnowParticle || p is LeafParticle) {
-                    p.TruePosition = Utils.TrueMod(p.TruePosition, new Rectangle(Camera.X, 0, Utils.GBW * 2, Utils.GBH * 2));
-                } else {
-                    p.TruePosition = Utils.TrueMod(p.TruePosition, level.MapBounds);
+                //if (p is SnowParticle || p is LeafParticle) {
+                //    p.TruePosition = Utils.TrueMod(p.TruePosition, new Rectangle(Camera.X, 0, Utils.GBW * 2, Utils.GBH * 2));
+                //} else {
+                    //p.TruePosition = Utils.TrueMod(p.TruePosition, level.MapBounds);
+                //}
+
+                foreach (Collider c in level.Volumes) {
+                    if (c.Metadata == "weather_volume") {
+                        Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 255));
+
+                        if (Collision.PointInCollider(p.TruePosition, c)) {
+                            Utils.QueueDebugPoint(p.TruePosition, 4f, new Color(0, 255, 0));
+                        } else {
+                            Utils.QueueDebugPoint(p.TruePosition, 4f, new Color(255, 0, 0));
+                        }
+                    }
                 }
                 if (p.Despawn) WeatherParticles.Remove(p);
             }
@@ -229,16 +282,13 @@ namespace GB_Seasons {
 
             GraphicsDevice.SetRenderTarget(RTMain);
             GraphicsDevice.Clear(ClearColor);
-            spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.Default, RasterizerState.CullNone, null, cameraMatrix);
 
-            level.Draw(spriteBatch, Tileset, 0, (int)CurrentSeason, 0, 0);
-            level.Draw(spriteBatch, Tileset, 1, (int)CurrentSeason, 0, 0);
+            level.Draw(spriteBatch, Tileset, 0, (int)CurrentSeason, 0, 0, cameraMatrix);
+            level.Draw(spriteBatch, Tileset, 1, (int)CurrentSeason, 0, 0, cameraMatrix);
 
-            DrawEntities(gameTime);
+            DrawEntities(gameTime, cameraMatrix);
 
-            level.Draw(spriteBatch, Tileset, 2, (int)CurrentSeason, 0, 0);
-
-            spriteBatch.End();
+            level.Draw(spriteBatch, Tileset, 2, (int)CurrentSeason, 0, 0, cameraMatrix);
         }
 
         private void DrawUI(GameTime gameTime) {
@@ -270,16 +320,19 @@ namespace GB_Seasons {
             Particles.Add(p.Particle);
         }
 
-        private void DrawEntities(GameTime gameTime) {
+        private void DrawEntities(GameTime gameTime, Matrix matrix) {
+            spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
+
             Player.Draw(spriteBatch);
 
             foreach (Particle p in Particles) {
-                Utils.QueueDebugPoint(p.Position.ToVector2(), 5f, new Color(0, 255, 255));
                 p.Draw(spriteBatch);
             }
             foreach (Particle p in WeatherParticles) {
                 p.Draw(spriteBatch);
             }
+
+            spriteBatch.End();
         }
 
         public void SetSeason(Season season) {

@@ -10,6 +10,7 @@
 float ScreenFlash;
 float GlowAmount;
 float2 GlowPos;
+float FadeLayer2;
 float2 Resolution;
 
 Texture2D SpriteTexture;
@@ -37,28 +38,26 @@ sampler2D GlowLUTSampler = sampler_state {
 	AddressV = Clamp;
 };
 
-struct VertexShaderOutput
-{
+struct VertexShaderOutput {
 	float4 Position : SV_POSITION;
 	float4 Color : COLOR0;
 	float2 TextureCoordinates : TEXCOORD0;
 };
 
-float4 MainPS(VertexShaderOutput input) : COLOR
-{
+float4 MainPS(VertexShaderOutput input) : COLOR {
 	float4 sprite = tex2D(SpriteTextureSampler, input.TextureCoordinates);
 	float lum = sprite.r * 4.0 / 5.0 + 1.0 / 8.0;
 	lum /= 1.0 - ScreenFlash;
 	float3 lut = tex2D(ColorLUTSampler, float2(lum, 0.5)).rgb;
 
+	//return sprite;
+
 	return float4(lut, 1.0);
 	//return tex2D(ColorLUTSampler,input.TextureCoordinates) * input.Color;
 }
 
-technique SpriteDrawing
-{
-	pass P0
-	{
+technique SpriteDrawing {
+	pass P0 {
 		PixelShader = compile PS_SHADERMODEL MainPS();
 	}
 };

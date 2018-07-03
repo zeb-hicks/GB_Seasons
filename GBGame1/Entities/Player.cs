@@ -18,13 +18,18 @@ namespace GB_Seasons.Entities {
         public bool Grounded;
         public bool HasAerialControl = true;
         private float coyoteTime;
+        private int Jumps = 0;
+        private int JumpMax = 2;
         public Vector2 GroundNormal = new Vector2(0, -1);
 
-        public PlayerState State = PlayerState.Stand;
+        public bool IsGrounded { get { return Grounded || coyoteTime > 0; } }
 
-        public float JumpVelocity = 3.5f;
-        public float CoyoteTimeDuration = 0.1f;
-        public float PhysicsMaxStep = 3f;
+        public PlayerState State = PlayerState.Stand;
+        public bool InSecret = false;
+
+        public float JumpVelocity = 3.8f;
+        public float CoyoteTimeDuration = 0.15f;
+        public float PhysicsMaxStep = 6f;
 
         private float walkVelocity;
 
@@ -52,26 +57,47 @@ namespace GB_Seasons.Entities {
             AddAnimation(new SpriteAnimation("jump", new List<SpriteFrame> {
                 new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16)),
             }));
+            AddAnimation(new SpriteAnimation("doublejump", new List<SpriteFrame> {
+                new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16), frameEvent: (sender, anim) => {
+                    //SpawnParticleAt<DustPuffParticle>(Position + new Point(-3, (int)Collider.BBRadius.Y - 3), false);
+                    //SpawnParticleAt<DustPuffParticle>(Position + new Point(3, (int)Collider.BBRadius.Y - 3), true);
+                    SpawnParticleAt<ShockwaveParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 2), false);
+                }),
+                new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16), frameEvent: (sender, anim) => {
+                    State = PlayerState.Jump;
+                    CurrentAnimation = "jump";
+                }),
+            }));
             AddAnimation(new SpriteAnimation("fall", new List<SpriteFrame> {
                 new SpriteFrame(new Rectangle(32, 0, 16, 16), new Rectangle(-8, -8, 16, 16)),
             }));
             AddAnimation(new SpriteAnimation("dash", new List<SpriteFrame> {
-                new SpriteFrame(new Rectangle(8,  0,  8,  16), new Rectangle(-4, -8, 8,  16), 2),
-                new SpriteFrame(new Rectangle(64, 0,  16, 16), new Rectangle(-8, -8, 16, 16), 2, rootMotion: new RootMotion(new Vector2(5, 0)), frameEvent: SpawnDustParticle),
-                new SpriteFrame(new Rectangle(64, 0,  16, 16), new Rectangle(-8, -8, 16, 16), 2, rootMotion: new RootMotion(new Vector2(5, 0)), frameEvent: SpawnDustParticle),
-                new SpriteFrame(new Rectangle(0,  16, 16, 16), new Rectangle(-8, -8, 16, 16), 2, rootMotion: new RootMotion(new Vector2(3, 0))),
+                new SpriteFrame(new Rectangle(8,  0,  8,  16), new Rectangle(-4, -8, 8,  16), 2, frameEvent: (sender, anim) => {
+                    Velocity.Y = Math.Min(Velocity.Y, 0f);
+                    Audio.PlaySFX(SFX.Dash);
+                    Flipped = walkVelocity < 0 ? true : walkVelocity > 0 ? false : Flipped;
+                }),
+                new SpriteFrame(new Rectangle(64, 0,  16, 16), new Rectangle(-8, -8, 16, 16), 2, rootMotion: new RootMotion(new Vector2(6, 0)), frameEvent: (sender, anim) => {
+                    Velocity.Y = Math.Min(Velocity.Y, 0f);
+                    SpawnDustParticle(sender, anim);
+                }),
+                new SpriteFrame(new Rectangle(64, 0,  16, 16), new Rectangle(-8, -8, 16, 16), 2, rootMotion: new RootMotion(new Vector2(6, 0)), frameEvent: (sender, anim) => {
+                    Velocity.Y = Math.Min(Velocity.Y, 0f);
+                    SpawnDustParticle(sender, anim);
+                }),
+                new SpriteFrame(new Rectangle(0,  16, 16, 16), new Rectangle(-8, -8, 16, 16), 2, rootMotion: new RootMotion(new Vector2(4, 0))),
                 new SpriteFrame(new Rectangle(0,  16, 16, 16), new Rectangle(-8, -8, 16, 16), 1, rootMotion: new RootMotion(new Vector2(2, 0))),
                 new SpriteFrame(new Rectangle(0,  16, 16, 16), new Rectangle(-8, -8, 16, 16), 1, rootMotion: new RootMotion(new Vector2(1, 0)), frameEvent: SpawnDustParticle),
                 new SpriteFrame(new Rectangle(0,  16, 16, 16), new Rectangle(-8, -8, 16, 16), 3, rootMotion: new RootMotion(new Vector2(0, 0))),
                 new SpriteFrame(new Rectangle(16, 16, 16, 16), new Rectangle(-8, -8, 16, 16), 4, rootMotion: new RootMotion(new Vector2(0, 0)), frameEvent: (sender, anim) => {
-                    State = PlayerState.Stand;
+                    State = PlayerState.Fall;
                 }),
             }));
             Collider roll_collider = new Collider(new Vector2[] {
-                new Vector2(-4, 0),
-                new Vector2( 4, 0),
-                new Vector2( 4, 8),
-                new Vector2(-4, 8)
+                new Vector2(-3, 0),
+                new Vector2( 3, 0),
+                new Vector2( 3, 8),
+                new Vector2(-3, 8)
             }, new Vector2(0, 0), new Vector2(0, 0));
             AddAnimation(new SpriteAnimation("roll", new List<SpriteFrame> {
                 new SpriteFrame(new Rectangle(64, 0, 16, 16), new Rectangle(-8, -8, 16, 16), 3),
@@ -100,6 +126,8 @@ namespace GB_Seasons.Entities {
         public override void Update(GameTime gameTime, Map level) {
             ProcessInput();
 
+            Console.WriteLine(PhysicsMaxStep);
+
             if (!Utils.DEBUG_FLY) {
                 if (Grounded) {
                     if (HasAerialControl) Velocity = GroundNormal.PerRight().Normalized() * walkVelocity;
@@ -119,15 +147,11 @@ namespace GB_Seasons.Entities {
             Grounded = false;
             GroundNormal = new Vector2(0, -1);
 
-            float motion = Velocity.Length();
             Vector2 pos = Position.ToVector2();
-            //while (motion > PhysicsMaxStep) {
-            //    motion -= PhysicsMaxStep;
-            //    pos = ProcessCollision(level, pos, PhysicsMaxStep);
-            //}
             RootMotion rm = Animations[CurrentAnimation].RootMotion;
 
-            pos += rm.Motion * new Vector2(rm.IgnoreFlip ? 1 : Flipped ? -1 : 1, 1);
+            Vector2 vel = Velocity + rm.Motion * new Vector2(rm.IgnoreFlip ? 1 : Flipped ? -1 : 1, 1);
+            float motion = vel.Length();
 
             if (Utils.DEBUG_FLY) {
                 if (InputsPressed[InputAction.Left]) { Position.X -= 1; Flipped = true; }
@@ -135,19 +159,42 @@ namespace GB_Seasons.Entities {
                 if (InputsPressed[InputAction.Up]) Position.Y -= 1;
                 if (InputsPressed[InputAction.Down]) Position.Y += 1;
             }
+            
+            foreach (Collider volume in level.Volumes) {
+                Utils.QueueDebugPoly(volume.Points, volume.Position, new Color(0, 255, 0));
+            }
 
-            pos = ProcessCollision(level, pos, motion);
+
+            while (motion > PhysicsMaxStep) {
+                motion -= PhysicsMaxStep;
+                pos = ProcessCollision(level, pos, vel, PhysicsMaxStep);
+            }
+            pos = ProcessCollision(level, pos, vel, motion);
+
             if (!Utils.DEBUG_FLY) {
                 Position = pos.ToPoint();
             }
 
             if (Grounded) {
                 coyoteTime = CoyoteTimeDuration;
+                Jumps = 0;
             } else {
                 coyoteTime = (float)Math.Max(-1f, coyoteTime - gameTime.ElapsedGameTime.TotalSeconds);
             }
 
+            PlayerState pstate = State;
             RetestState:
+            if (State != pstate) {
+                if (State == PlayerState.Roll && IsGrounded) {
+                    Audio.PlaySFX(SFX.Roll);
+                } else if (pstate == PlayerState.Roll) {
+                    Audio.StopSFX(SFX.Roll);
+                }
+
+                if (State == PlayerState.Jump || State == PlayerState.DoubleJump) {
+                    Audio.PlaySFX(SFX.Jump);
+                }
+            }
             switch (State) {
                 case PlayerState.Stand:
                     SetAnimation("stand");
@@ -158,6 +205,10 @@ namespace GB_Seasons.Entities {
                     if (TryForState(PlayerState.Jump)) goto RetestState;
                     if (TryForState(PlayerState.Roll)) goto RetestState;
                     if (TryForState(PlayerState.Dash)) goto RetestState;
+                    if (!IsGrounded) {
+                        State = PlayerState.Fall;
+                        goto RetestState;
+                    }
                     HasAerialControl = true;
                     break;
                 case PlayerState.Walk:
@@ -169,27 +220,41 @@ namespace GB_Seasons.Entities {
                     if (TryForState(PlayerState.Jump)) goto RetestState;
                     if (TryForState(PlayerState.Roll)) goto RetestState;
                     if (TryForState(PlayerState.Dash)) goto RetestState;
+                    if (!IsGrounded) {
+                        State = PlayerState.Fall;
+                        goto RetestState;
+                    }
                     HasAerialControl = true;
                     break;
                 case PlayerState.Jump:
                     SetAnimation("jump");
-                    if (Grounded) {
+                    Console.WriteLine("Vel: {0}", Velocity);
+                    if (Velocity.Y < 0 && InputsUp[InputAction.Up]) {
+                        Velocity.Y = 0f;
+                    }
+                    if (IsGrounded) {
                         if (TryForState(PlayerState.Stand)) goto RetestState;
                     }
                     if (TryForState(PlayerState.Dash)) goto RetestState;
+                    if (TryForState(PlayerState.DoubleJump)) goto RetestState;
                     if (Velocity.Y < -2f) {
                         State = PlayerState.Fall;
                         goto RetestState;
                     }
                     HasAerialControl = true;
                     break;
+                case PlayerState.DoubleJump:
+                    SetAnimation("doublejump");
+                    HasAerialControl = true;
+                    break;
                 case PlayerState.Fall:
                     SetAnimation("fall");
-                    if (Grounded) {
+                    if (IsGrounded) {
                         State = PlayerState.Stand;
                         goto RetestState;
                     }
                     if (TryForState(PlayerState.Dash)) goto RetestState;
+                    if (TryForState(PlayerState.DoubleJump)) goto RetestState;
                     HasAerialControl = true;
                     break;
                 case PlayerState.Roll:
@@ -202,6 +267,7 @@ namespace GB_Seasons.Entities {
                 case PlayerState.Dash:
                     SetAnimation("dash");
                     HasAerialControl = false;
+                    if (TryForState(PlayerState.DoubleJump)) goto RetestState;
                     break;
             }
 
@@ -227,13 +293,27 @@ namespace GB_Seasons.Entities {
                     return true;
                 case PlayerState.Jump:
                     if (InputsDown[InputAction.Up]) {
-                        if (Grounded || coyoteTime > 0f) {
+                        if (IsGrounded) {
+                            Jumps++;
                             Velocity.Y = -JumpVelocity * (State == PlayerState.Roll ? 0.75f : 1f);
                             Grounded = false;
                             coyoteTime = -1f;
+                            State = PlayerState.Jump;
+                            InputsDown[InputAction.Up] = false;
+                            return true;
                         }
-                        State = PlayerState.Jump;
-                        return true;
+                    }
+                    break;
+                case PlayerState.DoubleJump:
+                    if (InputsDown[InputAction.Up]) {
+                        if (Jumps < JumpMax) {
+                            Jumps++;
+                            Velocity.Y = -JumpVelocity * (State == PlayerState.Roll ? 0.75f : 1f);
+                            Grounded = false;
+                            State = PlayerState.DoubleJump;
+                            InputsDown[InputAction.Up] = false;
+                            return true;
+                        }
                     }
                     break;
                 case PlayerState.Dash:
@@ -252,9 +332,11 @@ namespace GB_Seasons.Entities {
             return false;
         }
 
-        private Vector2 ProcessCollision(Map level, Vector2 pos, float motion) {
+        private Vector2 ProcessCollision(Map level, Vector2 pos, Vector2 vel, float motion) {
             if (motion > 0) {
-                pos += Velocity.Normalized() * motion;
+                pos += vel.Normalized() * motion;
+            } else {
+                return pos;
             }
             ref Collider col = ref Collider;
             if (Animations[CurrentAnimation].FrameCollider != null) col = ref Animations[CurrentAnimation].FrameCollider;
@@ -263,13 +345,19 @@ namespace GB_Seasons.Entities {
             Utils.QueueDebugPoly(col.Points, pos, new Color(255, 255, 0));
 
             foreach (Collider collider in level.Colliders) {
+                if (collider.Mode != ColliderMode.Collision) continue;
                 Utils.QueueDebugPoly(collider.Points, collider.Position, new Color(255, 0, 0));
                 Vector2 sv = new Vector2();
                 sv = Collision.Separate(col, collider);
 
-                if (sv.Y < 0 && Velocity.Y > 0) {
+                if (sv.Y < 0 && vel.Y > 0) {
                     Grounded = true;
                 }
+
+                //if (sv.Y > 0 && vel.Y < 0) {
+                //    vel.Y = 0;
+                //    Velocity.Y = 0;
+                //}
 
                 if (sv.LengthSquared() > 0f && Math.Abs(sv.Y) * 2f > Math.Abs(sv.X) && sv.Y < 0) {
                     GroundNormal = sv.Normalized();
@@ -292,8 +380,8 @@ namespace GB_Seasons.Entities {
             if (InputsPressed[InputAction.Left]) walkVelocity -= 1;
             if (InputsPressed[InputAction.Right]) walkVelocity += 1;
 
-            if (walkVelocity > 0 && Grounded) Flipped = false;
-            if (walkVelocity < 0 && Grounded) Flipped = true;
+            if (walkVelocity > 0 && IsGrounded) Flipped = false;
+            if (walkVelocity < 0 && IsGrounded) Flipped = true;
         }
 
         public void HandleInput(InputAction action, bool state) {
@@ -321,22 +409,23 @@ namespace GB_Seasons.Entities {
         }
 
         private void SpawnDustParticle(object sender, SpriteAnimation anim) {
-            if (!Grounded) return;
-            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
-            p.SetTexture(Texture);
-            OnSpawnParticle(new SpawnParticleEventArgs(p));
+            if (!IsGrounded) return;
+            SpawnParticleAt<DustPuffParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
         }
 
         private void SpawnDashParticle(object sender, SpriteAnimation anim) {
-            if (!Grounded) return;
-            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
-            p.SetTexture(Texture);
-            OnSpawnParticle(new SpawnParticleEventArgs(p));
+            if (!IsGrounded) return;
+            SpawnParticleAt<DustPuffParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
         }
 
         private void SpawnAttackParticle(object sender, SpriteAnimation anim) {
-            if (!Grounded) return;
-            DustPuffParticle p = new DustPuffParticle(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
+            if (!IsGrounded) return;
+            SpawnParticleAt<DustPuffParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
+        }
+
+        protected void SpawnParticleAt<T>(params object[] args) {
+            object po = (T)Activator.CreateInstance(typeof(T), args);
+            Particle p = (Particle)po;
             p.SetTexture(Texture);
             OnSpawnParticle(new SpawnParticleEventArgs(p));
         }
@@ -346,6 +435,7 @@ namespace GB_Seasons.Entities {
         Stand,
         Walk,
         Jump,
+        DoubleJump,
         Fall,
         Roll,
         Dash,

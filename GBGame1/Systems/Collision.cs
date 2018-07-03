@@ -57,22 +57,24 @@ namespace GB_Seasons.Systems {
                     ProjectionResult result_a = Project(a, axis);
                     ProjectionResult result_b = Project(b, axis);
 
-                    // Draw projection basis
-                    Utils.QueueDebugPoly(new Vector2[] {
-                        axis.Vector.PerRight() * 30f + axis.Vector * 15f,
-                        axis.Vector.PerRight() * 30f + axis.Vector * -15f
-                    }, a.Position, Color.White);
+                    float off = -(result_a.Min + result_a.Max) / 2;
+
+                    //// Draw projection basis
+                    //Utils.QueueDebugPoly(new Vector2[] {
+                    //    axis.Vector.PerRight() * 30f + axis.Vector * 10f,
+                    //    axis.Vector.PerRight() * 30f + axis.Vector * -10f
+                    //}, a.Position, Color.White);
 
                     // Draw projection results
                     Utils.QueueDebugPoly(new Vector2[] {
-                        axis.Vector.PerRight() * 29f + axis.Vector * result_a.Min,
-                        axis.Vector.PerRight() * 29f + axis.Vector * result_a.Max
+                        axis.Vector.PerRight() * 29f + axis.Vector * (result_a.Min + off),
+                        axis.Vector.PerRight() * 29f + axis.Vector * (result_a.Max + off)
                     }, a.Position, new Color(255, 0, 0));
 
                     // Draw projection results
                     Utils.QueueDebugPoly(new Vector2[] {
-                        axis.Vector.PerRight() * 28f + axis.Vector * result_b.Min,
-                        axis.Vector.PerRight() * 28f + axis.Vector * result_b.Max
+                        axis.Vector.PerRight() * 28f + axis.Vector * (result_b.Min + off),
+                        axis.Vector.PerRight() * 28f + axis.Vector * (result_b.Max + off)
                     }, a.Position, new Color(0, 255, 0));
 
                     float magnitude = 0f;
@@ -210,24 +212,54 @@ namespace GB_Seasons.Systems {
             return false;
         }
 
+        public static Vector2? LineVsLine(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4) {
+
+            // Get the segments' parameters.
+            float dx12 = p2.X - p1.X;
+            float dy12 = p2.Y - p1.Y;
+            float dx34 = p4.X - p3.X;
+            float dy34 = p4.Y - p3.Y;
+
+            // Solve for t1 and t2
+            float denominator = (dy12 * dx34 - dx12 * dy34);
+
+            // Parallell check
+            if (denominator == 0) return null;
+
+            float t1 = ((p1.X - p3.X) * dy34 + (p3.Y - p1.Y) * dx34) / denominator;
+            if (float.IsInfinity(t1)) return null;
+
+            float t2 = ((p3.X - p1.X) * dy12 + (p1.Y - p3.Y) * dx12) / -denominator;
+
+            // The segments intersect if t1 and t2 are between 0 and 1.
+            if ((t1 >= 0) && (t1 <= 1) &&
+                 (t2 >= 0) && (t2 <= 1)) {
+                return new Vector2(p1.X + dx12 * t1, p1.Y + dy12 * t1);
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Collision detection for point vs polygon.
         /// </summary>
         /// <param name="v">Point to test.</param>
         /// <param name="poly">Polygon to collide with.</param>
         /// <returns>Returns true if the point lies within the polygon.</returns>
-        public static bool PointInPoly(Vector2 v, Vector2[] poly) {
-            float xmin = poly[0].X;
-            float xmax = poly[0].X;
-            float ymin = poly[0].Y;
-            float ymax = poly[0].Y;
+        public static bool PointInPoly(Vector2 v, Vector2[] poly, Vector2 offset) {
+            Utils.QueueDebugPoly(poly, offset, new Color(255, 255, 0));
+
+            float xmin = poly[0].X + offset.X;
+            float xmax = poly[0].X + offset.X;
+            float ymin = poly[0].Y + offset.Y;
+            float ymax = poly[0].Y + offset.Y;
 
             // Generate an AABB using the polygon.
             foreach (Vector2 pv in poly) {
-                xmin = Math.Min(xmin, pv.X);
-                xmax = Math.Max(xmin, pv.X);
-                ymin = Math.Min(xmin, pv.Y);
-                ymax = Math.Max(xmin, pv.Y);
+                xmin = Math.Min(xmin, pv.X + offset.X);
+                xmax = Math.Max(xmax, pv.X + offset.X);
+                ymin = Math.Min(ymin, pv.Y + offset.Y);
+                ymax = Math.Max(ymax, pv.Y + offset.Y);
             }
 
             // AABB early exit
@@ -240,13 +272,19 @@ namespace GB_Seasons.Systems {
             // Line crossing test. If an odd number of line segments were crossed, the ray started inside the polgyon.
             // Loop over each line segment and count the number of collisions vs the ray cast from point v.
             for (i = 0; i < poly.Length; i++) {
-                if (poly[i].Y < v.Y && poly[j].Y >= v.Y ||
-                    poly[j].Y < v.Y && poly[i].Y >= v.Y) {
+                float ix = poly[i].X + offset.X;
+                float iy = poly[i].Y + offset.Y;
+                float jx = poly[j].X + offset.X;
+                float jy = poly[j].Y + offset.Y;
+                //if (iy < v.Y && iy >= v.Y ||
+                //    iy < v.Y && iy >= v.Y) {
                     // Poly crosses the ray, check if it crosses in front or behind
-                    if (poly[i].X + (v.Y - poly[i].Y) / (poly[j].Y - poly[i].Y) * (poly[j].X - poly[i].X) < v.X) {
+                    //if (ix + (v.Y - iy) / (jy - iy) * (jx - ix) < v.X) {
+                    if ((iy > v.Y) != (jy > v.Y) && 
+                        v.X < (jx - ix) * (v.Y - iy) / (jy - iy) + ix) {
                         odd = !odd;
                     }
-                }
+                //}
                 j = i;
             }
 
@@ -259,7 +297,7 @@ namespace GB_Seasons.Systems {
         /// <param name="v">Point to test.</param>
         /// <param name="poly">Polygon to collide with.</param>
         /// <returns>Returns true if the point lies within the polygon.</returns>
-        public static bool PointInPoly(Vector2 v, Point[] poly) {
+        public static bool PointInPoly(Vector2 v, Point[] poly, Vector2 offset) {
             float xmin = poly[0].X;
             float xmax = poly[0].X;
             float ymin = poly[0].Y;
@@ -375,6 +413,8 @@ namespace GB_Seasons.Systems {
         }
     }
 
+    public delegate void ColliderAction(object sender, Collider collider);
+
     public class Collider {
         public Vector2 Position;
         public Vector2 BBCenter;
@@ -382,6 +422,9 @@ namespace GB_Seasons.Systems {
         public Vector2[] Points;
         public SATAxis[] Axes;
         public ColliderType Type;
+        public ColliderMode Mode;
+        public string Metadata;
+        public ColliderAction Action;
 
         public Collider(Rectangle rect) {
             Type = ColliderType.AABB;
@@ -492,5 +535,12 @@ namespace GB_Seasons.Systems {
         Point,
         AABB,
         Poly
+    }
+
+    public enum ColliderMode {
+        Collision,
+        Secret,
+        Zone,
+        Death
     }
 }

@@ -6,10 +6,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-using System.ComponentModel;
-using System.Diagnostics;
-using Microsoft.Xna.Framework.Design;
-
 namespace GB_Seasons {
     public static class Utils {
         public static int GBW = 160;
@@ -18,6 +14,8 @@ namespace GB_Seasons {
 
         public static bool DEBUG = false;
         public static bool DEBUG_FLY = false;
+        public static bool DEBUG_FBF = false;
+        public static bool DEBUG_FBF_NEXT = false;
 
         public static Point PointWithinRect(Point p, Rectangle r) {
             return new Point(Math.Min(Math.Max(p.X, r.X), r.X + r.Width), Math.Min(Math.Max(p.Y, r.Y), r.Y + r.Height));
@@ -92,6 +90,13 @@ namespace GB_Seasons {
             float dp = Dot(a, b);
             float bl = b.LengthSquared();
             return dp / bl;
+        }
+
+        public static float Lerpf(float val, float target, float delta) {
+            delta = Math.Abs(delta);
+            if (val > target) delta = -delta;
+            if (Math.Abs(val-target) < delta) return target;
+            return val + delta;
         }
 
         public static float Dot(Point a, Point b) {
@@ -240,7 +245,11 @@ namespace GB_Seasons {
                         }
                     }
                 }
+            }
+        }
 
+        public static void QueueFlush() {
+            for (int i = 0; i < DebugList.Count; i++) {
                 if (--DebugList[i].Persistence <= 0) {
                     DebugList.Remove(DebugList[i--]);
                 }

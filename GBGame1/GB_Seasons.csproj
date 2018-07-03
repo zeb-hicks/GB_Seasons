@@ -51,6 +51,8 @@
     <Compile Include="Entities\Particles\BeeParticle.cs" />
     <Compile Include="Entities\Particles\ButterflyParticle.cs" />
     <Compile Include="Entities\Particles\PlayerAttackParticle.cs" />
+    <Compile Include="Entities\Particles\ShockwaveParticle.cs" />
+    <Compile Include="Systems\Audio.cs" />
     <Compile Include="Systems\Collision.cs" />
     <Compile Include="Entities\Particles\DustPuffParticle.cs" />
     <Compile Include="Systems\MonoDebug.cs" />
@@ -123,6 +125,15 @@
     </None>
     <None Include="app.manifest" />
     <None Include="Content\Maps\test.tmx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Sounds.xgs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Sounds.xsb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Sounds.xwb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />

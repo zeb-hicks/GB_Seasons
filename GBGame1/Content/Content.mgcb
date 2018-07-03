@@ -79,81 +79,27 @@
 /processorParam:DebugMode=Auto
 /build:LightMap.fx
 
-#begin sfx/sfx_enter.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_enter.ogg
-
-#begin sfx/sfx_jump.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_jump.ogg
-
-#begin sfx/sfx_powerup.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_powerup.ogg
-
-#begin sfx/sfx_bee.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_bee.ogg
-
-#begin sfx/sfx_bird1.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_bird1.ogg
-
-#begin sfx/sfx_bird2.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_bird2.ogg
-
-#begin sfx/sfx_bird3.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_bird3.ogg
-
-#begin sfx/sfx_bird4.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_bird4.ogg
-
-#begin sfx/sfx_death.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:sfx/sfx_death.ogg
-
-#begin bgm/bgm_calm.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:bgm/bgm_calm.ogg
-
-#begin atm/atm_rain.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:atm/atm_rain.ogg
-
-#begin atm/atm_wind.ogg
-/importer:OggImporter
-/processor:SongProcessor
-/processorParam:Quality=Best
-/build:atm/atm_wind.ogg
-
 #begin TextEffect.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /build:TextEffect.fx
+
+#begin dither_fade.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:dither_fade.png
+
+#begin TilemapEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:TilemapEffect.fx
 
