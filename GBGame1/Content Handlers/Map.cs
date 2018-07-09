@@ -6,11 +6,11 @@ using System.Xml;
 
 using GB_Seasons.Systems;
 
-namespace GB_Seasons.ContentHandlers {
+namespace GB_Seasons.ContentHandlers_old {
     public class Map {
         private MapData mapData;
         public bool Loaded { get; set; }
-        public Rectangle MapBounds { get; private set; }
+        public RectangleF MapBounds { get; private set; }
         public Dictionary<string, MapObject> Meta { get { return mapData.Meta; } }
         public List<MapObject> Objects { get { return mapData.Objects; } }
         public List<Collider> Colliders { get { return mapData.Colliders; } }
@@ -18,7 +18,6 @@ namespace GB_Seasons.ContentHandlers {
 
         public float FadeAmount = 1f;
         public Vector2 FadePos = new Vector2();
-        private float layerFade = 1f;
 
         public Effect TilemapEffect;
 
@@ -29,7 +28,7 @@ namespace GB_Seasons.ContentHandlers {
         public void Load(string filename) {
             mapData = new MapData(filename);
 
-            MapBounds = mapData.Meta["map_bounds"]?.Region ?? new Rectangle(0, 0, 0, 0);
+            MapBounds = mapData.Meta["map_bounds"]?.Region ?? new RectangleF(0, 0, 0, 0);
             
             Loaded = true;
         }
@@ -70,7 +69,6 @@ namespace GB_Seasons.ContentHandlers {
                         spriteBatch.Draw(
                             tileset,
                             new Rectangle(tx * 8 - x + 4, ty * 8 - y + 4, 8, 8),
-                            //new Vector2(tx * 8 - x + 4, ty * 8 - y + 4),
                             new Rectangle(sx * 8, sy * 8, 8, 8),
                             Color.White,
                             (float)(rt * Math.PI / 2f),
@@ -103,8 +101,7 @@ namespace GB_Seasons.ContentHandlers {
             XmlElement map = (XmlElement)doc.GetElementsByTagName("map").Item(0);
             XmlNodeList layers = map.GetElementsByTagName("layer");
             foreach (XmlElement layer in layers) {
-                var l = new MapLayer();
-                l.Parse(layer);
+                var l = new MapLayer(layer);
                 Width = Math.Max(Width, l.Width);
                 Height = Math.Max(Height, l.Height);
                 Layers.Add(l);
@@ -132,7 +129,7 @@ namespace GB_Seasons.ContentHandlers {
                                 c.Mode = ColliderMode.Death;
                                 Volumes.Add(c);
                                 break;
-                            case "":
+                            case "collision":
                                 c.Mode = ColliderMode.Collision;
                                 Colliders.Add(c);
                                 break;
@@ -148,6 +145,8 @@ namespace GB_Seasons.ContentHandlers {
                     }
                 }
             }
+
+            Console.WriteLine(Meta);
         }
     }
 
@@ -160,9 +159,7 @@ namespace GB_Seasons.ContentHandlers {
         public int Width { get; set; }
         public int Height { get; set; }
 
-        public MapLayer() {}
-
-        public void Parse(XmlElement layerElement) {
+        public MapLayer(XmlElement layerElement) {
             string csv = layerElement.FirstChild.InnerText;
             var raws = csv.Split(',');
             Width = int.Parse(layerElement.GetAttribute("width"));
@@ -183,29 +180,43 @@ namespace GB_Seasons.ContentHandlers {
     }
 
     public class MapObject {
-        public string Name { get; set; }
-        public int x { get; set; }
-        public int y { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
+        public string Name { get; private set; }
+        public string Type { get; private set; }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Width { get; private set; }
+        public float Height { get; private set; }
 
-        public Point Position {
-            get { return new Point(x, y); }
-            set { x = value.X; y = value.Y; }
+        public Collider Collider { get; private set; }
+
+        public Dictionary<string, string> Properties = new Dictionary<string, string>();
+
+        public Vector2 Position {
+            get { return new Vector2(X, Y); }
+            set { X = value.X; Y = value.Y; }
         }
-        public Rectangle Region {
-            get { return new Rectangle(x, y, Width, Height); }
-            set { x = value.X; y = value.Y; Width = value.Width; Height = value.Height; }
+        public RectangleF Region {
+            get { return new RectangleF(X, Y, Width, Height); }
+            set { X = value.X; Y = value.Y; Width = value.Width; Height = value.Height; }
         }
 
         public MapObject(XmlElement element) {
             Name = element.GetAttribute("name");
-            x = int.Parse(element.GetAttribute("x"));
-            y = int.Parse(element.GetAttribute("y"));
-            int.TryParse(element.GetAttribute("width"), out int w);
-            int.TryParse(element.GetAttribute("height"), out int h);
+            Type = element.GetAttribute("type");
+            X = float.Parse(element.GetAttribute("x"));
+            Y = float.Parse(element.GetAttribute("y"));
+            float.TryParse(element.GetAttribute("width"), out float w);
+            float.TryParse(element.GetAttribute("height"), out float h);
             Width = w;
             Height = h;
+            Console.WriteLine(element.OuterXml);
+            Console.WriteLine(Type);
+            switch (Type) {
+                case "collision":
+                    break;
+                case "volume":
+                    break;
+            }
         }
     }
 
@@ -300,9 +311,9 @@ namespace GB_Seasons.ContentHandlers {
                     }
                     float pw = Mx - mx;
                     float ph = My - my;
-                    c = new Collider(poly, Position.ToVector2(), new Vector2(mx + pw / 2f, my + ph / 2f));
-
-                    c.Metadata = Meta;
+                    c = new Collider(poly, Position.ToVector2(), new Vector2(mx + pw / 2f, my + ph / 2f)) {
+                        Metadata = Meta
+                    };
 
                     //Utils.QueueDebugPoly(PolyPoints, Position.ToVector2(), new Color(255, 255, 0), 10000);
                     //Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 0), 10000);

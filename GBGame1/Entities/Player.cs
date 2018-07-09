@@ -27,16 +27,21 @@ namespace GB_Seasons.Entities {
         public PlayerState State = PlayerState.Stand;
         public bool InSecret = false;
 
-        public float JumpVelocity = 3.8f;
+        public float JumpVelocity = 4.2f;
         public float CoyoteTimeDuration = 0.15f;
         public float PhysicsMaxStep = 6f;
+
+        public bool HasControl = true;
 
         private float walkVelocity;
 
         public Dictionary<InputAction, bool> InputsPressed = new Dictionary<InputAction, bool>();
         public Dictionary<InputAction, bool> InputsDown = new Dictionary<InputAction, bool>();
         public Dictionary<InputAction, bool> InputsUp = new Dictionary<InputAction, bool>();
+        public Dictionary<InputAction, int> InputTime = new Dictionary<InputAction, int>();
         private Vector2 separationVector;
+
+        public List<MapVolume> InVolumes = new List<MapVolume>();
 
         public Player() {
             Collider = new Collider(new Vector2[] {
@@ -61,7 +66,7 @@ namespace GB_Seasons.Entities {
                 new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16), frameEvent: (sender, anim) => {
                     //SpawnParticleAt<DustPuffParticle>(Position + new Point(-3, (int)Collider.BBRadius.Y - 3), false);
                     //SpawnParticleAt<DustPuffParticle>(Position + new Point(3, (int)Collider.BBRadius.Y - 3), true);
-                    SpawnParticleAt<ShockwaveParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 2), false);
+                    SpawnParticleAt<ShockwaveParticle>(Position + new Vector2(0, Collider.BBRadius.Y - 2), false);
                 }),
                 new SpriteFrame(new Rectangle(48, 0, 16, 16), new Rectangle(-8, -8, 16, 16), frameEvent: (sender, anim) => {
                     State = PlayerState.Jump;
@@ -126,7 +131,7 @@ namespace GB_Seasons.Entities {
         public override void Update(GameTime gameTime, Map level) {
             ProcessInput();
 
-            Console.WriteLine(PhysicsMaxStep);
+            bool WasGrounded = IsGrounded;
 
             if (!Utils.DEBUG_FLY) {
                 if (Grounded) {
@@ -147,7 +152,7 @@ namespace GB_Seasons.Entities {
             Grounded = false;
             GroundNormal = new Vector2(0, -1);
 
-            Vector2 pos = Position.ToVector2();
+            Vector2 pos = Position;
             RootMotion rm = Animations[CurrentAnimation].RootMotion;
 
             Vector2 vel = Velocity + rm.Motion * new Vector2(rm.IgnoreFlip ? 1 : Flipped ? -1 : 1, 1);
@@ -159,11 +164,10 @@ namespace GB_Seasons.Entities {
                 if (InputsPressed[InputAction.Up]) Position.Y -= 1;
                 if (InputsPressed[InputAction.Down]) Position.Y += 1;
             }
-            
-            foreach (Collider volume in level.Volumes) {
-                Utils.QueueDebugPoly(volume.Points, volume.Position, new Color(0, 255, 0));
-            }
 
+            foreach (MapVolume volume in level.Volumes) {
+                Utils.QueueDebugPoly(volume.Poly, volume.Position, new Color(0, 255, 0));
+            }
 
             while (motion > PhysicsMaxStep) {
                 motion -= PhysicsMaxStep;
@@ -172,7 +176,9 @@ namespace GB_Seasons.Entities {
             pos = ProcessCollision(level, pos, vel, motion);
 
             if (!Utils.DEBUG_FLY) {
-                Position = pos.ToPoint();
+                Position = pos;
+                if (Math.Abs(Position.X - (int)Position.X) < 0.001) Position.X = (int)Position.X;
+                if (Math.Abs(Position.Y - (int)Position.Y) < 0.001) Position.Y = (int)Position.Y;
             }
 
             if (Grounded) {
@@ -195,6 +201,7 @@ namespace GB_Seasons.Entities {
                     Audio.PlaySFX(SFX.Jump);
                 }
             }
+
             switch (State) {
                 case PlayerState.Stand:
                     SetAnimation("stand");
@@ -228,16 +235,15 @@ namespace GB_Seasons.Entities {
                     break;
                 case PlayerState.Jump:
                     SetAnimation("jump");
-                    Console.WriteLine("Vel: {0}", Velocity);
-                    if (Velocity.Y < 0 && InputsUp[InputAction.Up]) {
-                        Velocity.Y = 0f;
-                    }
+                    //if (Velocity.Y < 0 && InputsUp[InputAction.Up]) {
+                    //    Velocity.Y = 0f;
+                    //}
                     if (IsGrounded) {
                         if (TryForState(PlayerState.Stand)) goto RetestState;
                     }
                     if (TryForState(PlayerState.Dash)) goto RetestState;
                     if (TryForState(PlayerState.DoubleJump)) goto RetestState;
-                    if (Velocity.Y < -2f) {
+                    if (Velocity.Y > 0f) {
                         State = PlayerState.Fall;
                         goto RetestState;
                     }
@@ -259,10 +265,19 @@ namespace GB_Seasons.Entities {
                     break;
                 case PlayerState.Roll:
                     SetAnimation("roll");
-                    if (!InputsPressed[InputAction.Down] && TryForState(PlayerState.Stand)) goto RetestState;
+                    bool canstand = true;
+                    foreach (MapVolume v in InVolumes) {
+                        if (v.Type == MapVolumeType.LowPassage) canstand = false;
+                    }
+                    if (canstand && !InputsPressed[InputAction.Down] && TryForState(PlayerState.Stand)) goto RetestState;
+                    //if (Velocity.Y < 0 && InputsUp[InputAction.Up]) {
+                    //    Velocity.Y = 0f;
+                    //}
                     TryForState(PlayerState.Jump);
                     State = PlayerState.Roll;
                     HasAerialControl = false;
+                    if (!WasGrounded && IsGrounded) Audio.PlaySFX(SFX.Roll);
+                    if (WasGrounded && !IsGrounded) Audio.StopSFX(SFX.Roll);
                     break;
                 case PlayerState.Dash:
                     SetAnimation("dash");
@@ -295,11 +310,12 @@ namespace GB_Seasons.Entities {
                     if (InputsDown[InputAction.Up]) {
                         if (IsGrounded) {
                             Jumps++;
-                            Velocity.Y = -JumpVelocity * (State == PlayerState.Roll ? 0.75f : 1f);
+                            Velocity.Y = -JumpVelocity * (State == PlayerState.Roll ? 0.8f : 1f);
                             Grounded = false;
                             coyoteTime = -1f;
                             State = PlayerState.Jump;
                             InputsDown[InputAction.Up] = false;
+                            Audio.StopSFX(SFX.Roll);
                             return true;
                         }
                     }
@@ -308,7 +324,7 @@ namespace GB_Seasons.Entities {
                     if (InputsDown[InputAction.Up]) {
                         if (Jumps < JumpMax) {
                             Jumps++;
-                            Velocity.Y = -JumpVelocity * (State == PlayerState.Roll ? 0.75f : 1f);
+                            Velocity.Y = -JumpVelocity * (State == PlayerState.Roll ? 0.8f : 1f);
                             Grounded = false;
                             State = PlayerState.DoubleJump;
                             InputsDown[InputAction.Up] = false;
@@ -344,11 +360,11 @@ namespace GB_Seasons.Entities {
 
             Utils.QueueDebugPoly(col.Points, pos, new Color(255, 255, 0));
 
-            foreach (Collider collider in level.Colliders) {
-                if (collider.Mode != ColliderMode.Collision) continue;
-                Utils.QueueDebugPoly(collider.Points, collider.Position, new Color(255, 0, 0));
+            foreach (MapCollider mapc in level.Colliders) {
+                //if (mapc.Mode != ColliderMode.Collision) continue;
+                Utils.QueueDebugPoly(mapc.Collider.Points, mapc.Position, new Color(255, 0, 0));
                 Vector2 sv = new Vector2();
-                sv = Collision.Separate(col, collider);
+                sv = Collision.Separate(col, mapc.Collider);
 
                 if (sv.Y < 0 && vel.Y > 0) {
                     Grounded = true;
@@ -372,6 +388,13 @@ namespace GB_Seasons.Entities {
                 col.Position = pos;
             }
 
+            InVolumes.Clear();
+            foreach (MapVolume volume in level.Volumes) {
+                if (Collision.PointInCollider(Position, volume.Collider)) {
+                    InVolumes.Add(volume);
+                }
+            }
+
             return pos;
         }
 
@@ -386,18 +409,24 @@ namespace GB_Seasons.Entities {
 
         public void HandleInput(InputAction action, bool state) {
             if (state) {
-                if (!InputsPressed[action]) InputsDown[action] = true;
+                if (!InputsPressed[action]) {
+                    InputsDown[action] = true;
+                    InputTime[action] = 0;
+                }
                 InputsPressed[action] = true;
             } else {
-                if (InputsPressed[action]) InputsUp[action] = true;
+                if (InputsPressed[action]) {
+                    InputsUp[action] = true;
+                    InputTime[action] = 0;
+                }
                 InputsPressed[action] = false;
             }
         }
 
-        public void Reset(Point pos) {
+        public void Reset(Vector2 pos) {
             //Utils.QueueDebugPoint(pos.ToVector2(), 12f, new Color(255, 128, 0), 1000);
             if (Utils.DEBUG_FLY) return;
-            Position = pos - new Point(0, 8);
+            Position = pos - new Vector2(0, 8);
             Velocity = new Vector2(0, 1);
             Grounded = true;
             State = PlayerState.Stand;
@@ -410,17 +439,17 @@ namespace GB_Seasons.Entities {
 
         private void SpawnDustParticle(object sender, SpriteAnimation anim) {
             if (!IsGrounded) return;
-            SpawnParticleAt<DustPuffParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
+            SpawnParticleAt<DustPuffParticle>(Position + new Vector2(0, (int)Collider.BBRadius.Y - 3), Flipped);
         }
 
         private void SpawnDashParticle(object sender, SpriteAnimation anim) {
             if (!IsGrounded) return;
-            SpawnParticleAt<DustPuffParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
+            SpawnParticleAt<DustPuffParticle>(Position + new Vector2(0, (int)Collider.BBRadius.Y - 3), Flipped);
         }
 
         private void SpawnAttackParticle(object sender, SpriteAnimation anim) {
             if (!IsGrounded) return;
-            SpawnParticleAt<DustPuffParticle>(Position + new Point(0, (int)Collider.BBRadius.Y - 3), Flipped);
+            SpawnParticleAt<DustPuffParticle>(Position + new Vector2(0, (int)Collider.BBRadius.Y - 3), Flipped);
         }
 
         protected void SpawnParticleAt<T>(params object[] args) {

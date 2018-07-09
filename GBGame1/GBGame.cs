@@ -21,8 +21,8 @@ namespace GB_Seasons {
 
         public Map level;
 
-        public Point Camera;
-        public Rectangle CameraBounds;
+        public Vector2 Camera;
+        public RectangleF CameraBounds;
 
         public Season CurrentSeason;
 
@@ -96,16 +96,9 @@ namespace GB_Seasons {
 
             ClearColor = new Color(230, 214, 156);
 
-            level = new Map();
-            level.Load("./Content/Maps/test.tmx");
-
             //foreach (Collider c in level.Colliders) {
             //    Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 0), 10000);
             //}
-
-            Player.Position = level.Meta["start_point"].Position - new Point(0, 8);
-
-            CameraBounds = new Rectangle(level.MapBounds.X, level.MapBounds.Y, level.MapBounds.Width - Utils.GBW, level.MapBounds.Height - Utils.GBH);
 
             Tileset = Content.Load<Texture2D>("tiles");
             Sprites = Content.Load<Texture2D>("sprites");
@@ -118,8 +111,13 @@ namespace GB_Seasons {
             LightMap.Parameters["GlowLUT"]?.SetValue(GlowLut);
             LightMap.Parameters["FadeLUT"]?.SetValue(FadeLut);
 
-            level.TilemapEffect = Content.Load<Effect>("TilemapEffect");
-            level.TilemapEffect.Parameters["FadeLut"]?.SetValue(FadeLut);
+            LoadMap("test");
+
+            if (level.Meta.ContainsKey("start_point")) {
+                Player.Position = (Vector2)level.Meta["start_point"] - new Vector2(0, 8);
+            } else {
+                Console.WriteLine("No start point found in map metadata!");
+            }
 
             Audio.LoadSFX(Content);
 
@@ -152,15 +150,21 @@ namespace GB_Seasons {
         /// checking for collisions, gathering input, and playing audio.
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        KeyboardState pkb;
+        private KeyboardState pkb = new KeyboardState();
         protected override void Update(GameTime gameTime) {
 
-            #region Debug frame-by-frame
-
+            #region Debug input handling
+            
             KeyboardState ks = Keyboard.GetState();
+            if (ks.IsKeyDown(Keys.LeftControl) && ks.IsKeyDown(Keys.R) && !pkb.IsKeyDown(Keys.R)) {
+                LoadMap("test");
+            }
+
             if (ks.IsKeyDown(Keys.Add) && !pkb.IsKeyDown(Keys.Add)) Utils.DEBUG_FBF = !Utils.DEBUG_FBF;
             if (ks.IsKeyDown(Keys.Subtract) && !pkb.IsKeyDown(Keys.Subtract)) Utils.DEBUG_FBF_NEXT = true;
+
             pkb = ks;
+
             if (Utils.DEBUG_FBF && !Utils.DEBUG_FBF_NEXT) return;
             Utils.DEBUG_FBF_NEXT = false;
 
@@ -176,15 +180,15 @@ namespace GB_Seasons {
 
             Player.InSecret = false;
 
-            foreach (Collider volume in level.Volumes) {
-                if (Collision.PointInPoly(Player.Position.ToVector2(), volume.Points, volume.Position)) {
-                    if (volume.Mode == ColliderMode.Secret) {
+            foreach (MapVolume volume in level.Volumes) {
+                if (Collision.PointInPoly(Player.Position, volume.Poly, volume.Position)) {
+                    //if (volume.Mode == ColliderMode.Secret) {
                         Player.InSecret = true;
-                    }
+                    //}
                 }
             }
 
-            level.FadePos = Player.Position.ToVector2() - Camera.ToVector2() - new Vector2(Utils.GBW / 2, Utils.GBH / 2);
+            level.FadePos = Player.Position - Camera - new Vector2(Utils.GBW / 2, Utils.GBH / 2);
 
             float ft = Player.InSecret ? 1f : 0f;
             level.FadeAmount = Utils.Lerpf(level.FadeAmount, ft, (float)gameTime.ElapsedGameTime.TotalSeconds * 3f);
@@ -193,17 +197,18 @@ namespace GB_Seasons {
                 Vector2 prevPos = p.TruePosition;
 
                 p.Update(gameTime);
+
                 //if (p is SnowParticle || p is LeafParticle) {
                 //    p.TruePosition = Utils.TrueMod(p.TruePosition, new Rectangle(Camera.X, 0, Utils.GBW * 2, Utils.GBH * 2));
                 //} else {
-                    //p.TruePosition = Utils.TrueMod(p.TruePosition, level.MapBounds);
+                //    p.TruePosition = Utils.TrueMod(p.TruePosition, level.MapBounds);
                 //}
 
-                foreach (Collider c in level.Volumes) {
-                    if (c.Metadata == "weather_volume") {
-                        Utils.QueueDebugPoly(c.Points, c.Position, new Color(0, 255, 255));
+                foreach (MapVolume v in level.Volumes) {
+                    if (v.Type == MapVolumeType.Weather) {
+                        Utils.QueueDebugPoly(v.Poly, v.Position, new Color(0, 255, 255));
 
-                        if (Collision.PointInCollider(p.TruePosition, c)) {
+                        if (Collision.PointInPoly(p.TruePosition, v.Poly, v.Position)) {
                             Utils.QueueDebugPoint(p.TruePosition, 4f, new Color(0, 255, 0));
                         } else {
                             Utils.QueueDebugPoint(p.TruePosition, 4f, new Color(255, 0, 0));
@@ -218,8 +223,13 @@ namespace GB_Seasons {
                 if (Particles[pi].Despawn) Particles.Remove(Particles[pi--]);
             }
 
-            if (!level.MapBounds.Contains(Player.Position)) {
-                Player.Reset(level.Meta["start_point"].Position);
+            RectangleF mapbounds = (RectangleF)level.Meta["map_bounds"];
+            if (!mapbounds.Contains(Player.Position)) {
+                if (level.Meta.ContainsKey("start_point")) {
+                    Player.Reset((Vector2)level.Meta["start_point"]);
+                } else {
+                    Console.WriteLine("No start position found in map metadata!");
+                }
             }
 
             Camera.X = Player.Position.X - Utils.GBW / 2;
@@ -305,15 +315,15 @@ namespace GB_Seasons {
             //    ReadingMode = ReadingMode.Progressive
             //}, gameTime);
 
-            //UIManager.DrawString(spriteBatch, new GBString {
-            //    Region = new Rectangle(0, 0, 160, 8),
-            //    Text = Player.CurrentAnimation + " - " + Player.State.ToString()
-            //}, gameTime, true);
+            UIManager.DrawString(spriteBatch, new GBString {
+                Region = new Rectangle(0, 0, 160, 8),
+                Text = Player.CurrentAnimation + " - " + Player.State.ToString()
+            }, gameTime, true);
 
-            //UIManager.DrawString(spriteBatch, new GBString {
-            //    Region = new Rectangle(0, 8, 160, 8),
-            //    Text = Player.Grounded ? "Grounded" : "Airborne"
-            //}, gameTime, true);
+            UIManager.DrawString(spriteBatch, new GBString {
+                Region = new Rectangle(0, 8, 160, 8),
+                Text = Player.Grounded ? "Grounded" : "Airborne"
+            }, gameTime, true);
         }
 
         private void PlayerSpawnParticle(object sender, SpawnParticleEventArgs p) {
@@ -335,15 +345,33 @@ namespace GB_Seasons {
             spriteBatch.End();
         }
 
+        private void LoadMap(string MapName) {
+            level = new Map();
+            level.Load("./Content/Maps/" + MapName + ".tmx");
+
+            RectangleF mapbounds = (RectangleF)level.Meta["map_bounds"];
+
+            CameraBounds = new RectangleF(
+                mapbounds.X,
+                mapbounds.Y,
+                mapbounds.Width - Utils.GBW,
+                mapbounds.Height - Utils.GBH
+            );
+
+            level.TilemapEffect = Content.Load<Effect>("TilemapEffect");
+            level.TilemapEffect.Parameters["FadeLut"]?.SetValue(FadeLut);
+        }
+
         public void SetSeason(Season season) {
             WeatherParticles.Clear();
             FlashAmount = 1f;
             CurrentSeason = season;
             var rnd = new Random((int)DateTime.Now.Ticks);
+            RectangleF mapbounds = (RectangleF)level.Meta["map_bounds"];
             switch (CurrentSeason) {
                 case Season.Spring:
                     for (int i = 0; i < 18; i++) {
-                        var butterfly = new ButterflyParticle(new Point(rnd.Next(level.MapBounds.Width), rnd.Next(level.MapBounds.Height)), level.MapBounds, rnd.Next(4));
+                        var butterfly = new ButterflyParticle(new Vector2((float)rnd.NextDouble() * mapbounds.Width, (float)rnd.NextDouble() * mapbounds.Height), mapbounds, rnd.Next(4));
                         butterfly.SetTexture(Sprites);
                         butterfly.Flipped = rnd.Next(2) == 1;
                         WeatherParticles.Add(butterfly);
@@ -351,7 +379,7 @@ namespace GB_Seasons {
                     break;
                 case Season.Summer:
                     for (int i = 0; i < 8; i++) {
-                        var bee = new BeeParticle(new Point(rnd.Next(level.MapBounds.Width), rnd.Next(level.MapBounds.Height)), level.MapBounds, rnd.Next(4));
+                        var bee = new BeeParticle(new Vector2((float)rnd.NextDouble() * mapbounds.Width, (float)rnd.NextDouble() * mapbounds.Height), mapbounds, rnd.Next(4));
                         bee.SetTexture(Sprites);
                         bee.Flipped = rnd.Next(2) == 1;
                         WeatherParticles.Add(bee);
@@ -359,7 +387,7 @@ namespace GB_Seasons {
                     break;
                 case Season.Autumn:
                     for (int i = 0; i < 140; i++) {
-                        var leaf = new LeafParticle(new Point(rnd.Next(level.MapBounds.Width), rnd.Next(level.MapBounds.Height)), rnd.Next(2), rnd.Next(8));
+                        var leaf = new LeafParticle(new Vector2((float)rnd.NextDouble() * mapbounds.Width, (float)rnd.NextDouble() * mapbounds.Height), rnd.Next(2), rnd.Next(8));
                         leaf.SetTexture(Sprites);
                         leaf.Flipped = rnd.Next(2) == 1;
                         WeatherParticles.Add(leaf);
@@ -367,7 +395,7 @@ namespace GB_Seasons {
                     break;
                 case Season.Winter:
                     for (int i = 0; i < 320; i++) {
-                        var snow = new SnowParticle(new Point(rnd.Next(level.MapBounds.Width), rnd.Next(level.MapBounds.Height)), rnd.Next(5), rnd.Next(8));
+                        var snow = new SnowParticle(new Vector2((float)rnd.NextDouble() * mapbounds.Width, (float)rnd.NextDouble() * mapbounds.Height), rnd.Next(5), rnd.Next(8));
                         snow.SetTexture(Sprites);
                         snow.Flipped = rnd.Next(2) == 1;
                         WeatherParticles.Add(snow);

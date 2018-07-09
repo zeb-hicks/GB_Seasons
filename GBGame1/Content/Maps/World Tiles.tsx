@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tileset name="World Tiles" tilewidth="8" tileheight="8" tilecount="1024" columns="32">
- <image source="../../../Users/Zeb/Source/Repos/GBGame1/GBGame1/Content/tiles.png" width="256" height="256"/>
+ <image source="../tiles.png" width="256" height="256"/>
  <tile id="64">
   <objectgroup draworder="index">
    <object id="1" x="0" y="0" width="8" height="8"/>

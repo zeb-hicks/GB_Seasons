@@ -11,7 +11,7 @@ using GB_Seasons.ContentHandlers;
 
 namespace GB_Seasons.Entities {
     public partial class SpriteEntity {
-        public Point Position;
+        public Vector2 Position;
         public Dictionary<string, SpriteAnimation> Animations;
         public string CurrentAnimation;
         public Texture2D Texture;
@@ -19,7 +19,7 @@ namespace GB_Seasons.Entities {
         public bool Despawn;
 
         public SpriteEntity() {
-            Position = new Point();
+            Position = new Vector2();
             Animations = new Dictionary<string, SpriteAnimation>();
         }
         public SpriteEntity(Dictionary<string, SpriteAnimation> anims, string defaultAnim = null) {
@@ -80,7 +80,7 @@ namespace GB_Seasons.Entities {
             var f = a.Frames[a.CurrentFrame];
 
             // Draw the current animation frame.
-            var r = f.Dest.AtOffset(Position);
+            Rectangle r = f.Dest.AtOffset(Position);
             //r.Y -= 8;
             if (Flipped) r = r.Flipped();
             spriteBatch.Draw(Texture, r, f.Source, Color.White);

@@ -20,7 +20,7 @@ namespace GB_Seasons {
         public static Point PointWithinRect(Point p, Rectangle r) {
             return new Point(Math.Min(Math.Max(p.X, r.X), r.X + r.Width), Math.Min(Math.Max(p.Y, r.Y), r.Y + r.Height));
         }
-        public static Vector2 PointWithinRect(Vector2 v, Rectangle r) {
+        public static Vector2 PointWithinRect(Vector2 v, RectangleF r) {
             return new Vector2(Math.Min(Math.Max(v.X, r.X), r.X + r.Width), Math.Min(Math.Max(v.Y, r.Y), r.Y + r.Height));
         }
 
@@ -127,8 +127,16 @@ namespace GB_Seasons {
 
         #region Extension Methods
 
-        public static Rectangle AtOffset(this Rectangle r, Point p) {
-            return new Rectangle(r.X + p.X, r.Y + p.Y, r.Width, r.Height);
+        public static RectangleF AtOffset(this RectangleF r, Vector2 p) {
+            return new RectangleF(r.X + p.X, r.Y + p.Y, r.Width, r.Height);
+        }
+
+        public static RectangleF Flipped(this RectangleF r) {
+            return new RectangleF(r.X + r.Width, r.Y, -r.Width, r.Height);
+        }
+
+        public static Rectangle AtOffset(this Rectangle r, Vector2 p) {
+            return new Rectangle(r.X + (int)p.X, r.Y + (int)p.Y, r.Width, r.Height);
         }
 
         public static Rectangle Flipped(this Rectangle r) {

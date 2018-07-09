@@ -8,11 +8,10 @@ using System.Threading.Tasks;
 
 namespace GB_Seasons.Entities.Particles {
     class ShockwaveParticle : Particle {
-        Random random;
 
-        public ShockwaveParticle(Point position, bool flipped) {
+        public ShockwaveParticle(Vector2 position, bool flipped) {
             //random = new Random((int)DateTime.Now.Ticks);
-            TruePosition = position.ToVector2();
+            TruePosition = position;
             Position = position;
             Flipped = flipped;
             AddAnimation(new SpriteAnimation("doublejump", new List<SpriteFrame>() {
@@ -26,7 +25,7 @@ namespace GB_Seasons.Entities.Particles {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
             TruePosition += Velocity;
-            Position = TruePosition.ToPoint();
+            Position = TruePosition;
         }
     }
 }

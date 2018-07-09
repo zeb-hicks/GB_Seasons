@@ -10,10 +10,10 @@ namespace GB_Seasons.Entities.Particles {
     class DustPuffParticle : Particle {
         Random random;
 
-        public DustPuffParticle(Point position, bool flipped) {
+        public DustPuffParticle(Vector2 position, bool flipped) {
             random = new Random((int)DateTime.Now.Ticks);
             Velocity = new Vector2((float)(random.NextDouble() * 0.3 + 0.3) * (flipped ? 1f : -1f), 0);
-            TruePosition = position.ToVector2();
+            TruePosition = position;
             Position = position;
             Flipped = flipped;
             AddAnimation(new SpriteAnimation("dustpuff", new List<SpriteFrame>() {
@@ -28,7 +28,7 @@ namespace GB_Seasons.Entities.Particles {
         public override void Update(GameTime gameTime) {
             base.Update(gameTime);
             TruePosition += Velocity;
-            Position = TruePosition.ToPoint();
+            Position = TruePosition;
         }
     }
 }
