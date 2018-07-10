@@ -182,9 +182,9 @@ namespace GB_Seasons {
 
             foreach (MapVolume volume in level.Volumes) {
                 if (Collision.PointInPoly(Player.Position, volume.Poly, volume.Position)) {
-                    //if (volume.Mode == ColliderMode.Secret) {
+                    if (volume.Type == MapVolumeType.Secret) {
                         Player.InSecret = true;
-                    //}
+                    }
                 }
             }
 

@@ -167,11 +167,6 @@ namespace GB_Seasons {
 
         #region Debug Drawing Queue
 
-        static Queue<object> ObjQ = new Queue<object>();
-        static Queue<Vector2> OffsetQ = new Queue<Vector2>();
-        static Queue<Color> ColorQ = new Queue<Color>();
-        static Queue<int> PersistenceQ = new Queue<int>();
-
         static List<DebugObject> DebugList = new List<DebugObject>();
 
         public static void QueueDebugRect(Rectangle r, Vector2? o = null, Color? c = null, int persistence = 1) {
@@ -205,8 +200,6 @@ namespace GB_Seasons {
         }
 
         public static void QueueDebugArrow(Vector2 p, Vector2 v, Color? c = null, float length = 12f, float size = 3f, int persistence = 1) {
-            OffsetQ.Enqueue(new Vector2());
-            ColorQ.Enqueue(c ?? Color.White);
             DebugList.Add(new DebugObject {
                 Object = new DebugArrow {
                     Origin = p,
